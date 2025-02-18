@@ -56,15 +56,6 @@ file(GLOB_RECURSE PHYSICS_SOURCE_FILES CONFIGURE_DEPENDS
     ${PHYSICS_SRC_DIR}/*/*.cpp
 )
 
-# Store include directories
-set(PHYSICS_INCLUDE_DIRS
-	# Library files
-    ${PHYSICS_INCLUDE_DIR}
-	
-	# External libraries
-    ${EXT_GLM_DIR}
-)
-
 # Build as a shared library (DLL)
 add_library(ElypsoPhysics SHARED ${PHYSICS_SOURCE_FILES})
 set_target_properties(ElypsoPhysics PROPERTIES OUTPUT_NAME "ElypsoPhysics")
@@ -76,19 +67,14 @@ set_target_properties(ElypsoPhysics PROPERTIES
     OUTPUT_NAME "ElypsoPhysics$<$<CONFIG:Debug>:D>"
 )
 
-# Also build a static library
-add_library(ElypsoPhysics_Static STATIC ${PHYSICS_SOURCE_FILES})
-set_target_properties(ElypsoPhysics_Static PROPERTIES OUTPUT_NAME "ElypsoPhysics_Static")
-target_compile_features(ElypsoPhysics_Static PRIVATE cxx_std_20)
-target_include_directories(ElypsoPhysics_Static PRIVATE ${PHYSICS_INCLUDE_DIRS})
-
-# Append 'D' suffix to debug builds for both Windows and Linux
-set_target_properties(ElypsoPhysics_Static PROPERTIES
-    OUTPUT_NAME "ElypsoPhysics_Static$<$<CONFIG:Debug>:D>"
-)
-
 # Apply all directories to target
-target_include_directories(ElypsoPhysics PRIVATE ${PHYSICS_INCLUDE_DIRS})
+target_include_directories(ElypsoPhysics PRIVATE
+	# Library files
+    ${PHYSICS_INCLUDE_DIR}
+	
+	# External libraries
+    ${EXT_GLM_DIR}
+)
 
 if (WIN32)
     target_link_libraries(ElypsoPhysics PRIVATE)
@@ -101,18 +87,12 @@ endif()
 
 # Define preprocessor directives
 target_compile_definitions(ElypsoPhysics PRIVATE PHYSICS_DLL_EXPORT)
-target_compile_definitions(ElypsoPhysics_Static PRIVATE PHYSICS_STATIC_LIB)
 
 # Install the DLL and its import library (ElypsoPhysics.dll + ElypsoPhysics.lib)
 install(TARGETS ElypsoPhysics
     RUNTIME DESTINATION bin  # .dll (Windows) and .so (Linux)
     LIBRARY DESTINATION lib  # .lib (Windows import lib) or .so (Linux)
     ARCHIVE DESTINATION lib  # .lib (Linux static lib)
-)
-
-# Install the static library (ElypsoPhysics_Static.lib)
-install(TARGETS ElypsoPhysics_Static
-    ARCHIVE DESTINATION lib  # Static library goes to lib/
 )
 
 # Install header files

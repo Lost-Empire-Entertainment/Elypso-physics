@@ -15,9 +15,9 @@
 	#define PHYSICS_API
 #endif
 
-namespace Core
+namespace ElypsoPhysics
 {
-	class Physics
+	class PHYSICS_API Core
 	{
 	public:
 		static void Test1();

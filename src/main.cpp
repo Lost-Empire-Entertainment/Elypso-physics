@@ -9,9 +9,9 @@
 
 using std::cout;
 
-namespace Core
+namespace ElypsoPhysics
 {
-	void Physics::Test1()
+	void Core::Test1()
 	{
 		cout << "test1 was ran from ElypsoPhysics!\n";
 	}
