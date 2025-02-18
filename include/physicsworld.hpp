@@ -17,6 +17,7 @@
 
 #include <vector>
 #include <unordered_map>
+#include <cstdint>
 
 //external
 #include "glm.hpp"
@@ -30,11 +31,13 @@ namespace ElypsoPhysics
 	using std::unordered_map;
 	using glm::vec3;
 	using glm::quat;
+	using std::hash;
 
 	class PHYSICS_API PhysicsWorld
 	{
 	public:
 		PhysicsWorld();
+		~PhysicsWorld();
 
 		/// <summary>
 		/// Create a RigidBody and return its handle.
@@ -47,7 +50,7 @@ namespace ElypsoPhysics
 		/// <summary>
 		/// Get a RigidBody by handle.
 		/// </summary>
-		RigidBody* GetRigidBody(GameObjectHandle handle);
+		RigidBody* GetRigidBody(const GameObjectHandle& handle);
 
 		/// <summary>
 		/// Remove a RigidBody
@@ -61,7 +64,7 @@ namespace ElypsoPhysics
 
 	private:
 		vector<RigidBody> bodies;                        //Array of all rigidbodies
-		unordered_map<GameObjectHandle, size_t> bodyMap; //Map for quick lookup
+		unordered_map<GameObjectHandle, size_t, hash<GameObjectHandle>> bodyMap; //Map for quick lookup
 		vector<uint32_t> generations;                    //Tracks generation of each index
 	};
 }

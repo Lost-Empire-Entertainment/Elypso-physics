@@ -5,14 +5,28 @@
 
 //physics
 #include "physicsworld.hpp"
+#include "collisiondetection.hpp"
 
 using std::swap;
+using glm::normalize;
+using glm::length;
 
 namespace ElypsoPhysics
 {
 	PhysicsWorld::PhysicsWorld()
 	{
 
+	}
+
+	PhysicsWorld::~PhysicsWorld()
+	{
+		for (RigidBody& body : bodies)
+		{
+			delete body.collider; //free dynamically allocated colliders
+		}
+		bodies.clear();
+		bodyMap.clear();
+		generations.clear();
 	}
 
 	GameObjectHandle PhysicsWorld::CreateRigidBody(
@@ -33,7 +47,7 @@ namespace ElypsoPhysics
 		return handle;
 	}
 
-	RigidBody* PhysicsWorld::GetRigidBody(GameObjectHandle handle)
+	RigidBody* PhysicsWorld::GetRigidBody(const GameObjectHandle& handle)
 	{
 		auto it = bodyMap.find(handle);
 		if (it != bodyMap.end())
@@ -65,9 +79,76 @@ namespace ElypsoPhysics
 
 	void PhysicsWorld::StepSimulation(float deltaTime)
 	{
+		//collision detection and resolution
+		for (size_t i = 0; i < bodies.size(); i++)
+		{
+			RigidBody& bodyA = bodies[i];
+
+			for (size_t j = i + 1; j < bodies.size(); j++)
+			{
+				RigidBody& bodyB = bodies[j];
+
+				if (bodyA.collider
+					&& bodyB.collider)
+				{
+					if (CollisionDetection::CheckAABBCollision(bodyA, bodyB))
+					{
+						//sphere-sphere collision
+						if (bodyA.collider->type == ColliderType::SPHERE
+							&& bodyB.collider->type == ColliderType::SPHERE)
+						{
+							SphereCollider* sphereA = static_cast<SphereCollider*>(bodyA.collider);
+							SphereCollider* sphereB = static_cast<SphereCollider*>(bodyB.collider);
+
+							if (CollisionDetection::CheckSphereSphereCollision(
+								*sphereA,
+								bodyA.position,
+								*sphereB,
+								bodyB.position))
+							{
+								//simple push-back collision resolution
+								vec3 collisionVector = bodyA.position - bodyB.position;
+								if (length(collisionVector) > 0.0f)
+								{
+									vec3 collisionNormal = normalize(collisionVector);
+									bodyA.position += collisionNormal * 0.1f;
+									bodyB.position -= collisionNormal * 0.1f;
+								}
+							}
+						}
+
+						//box-box collision
+						else if (bodyA.collider->type == ColliderType::BOX
+							&& bodyB.collider->type == ColliderType::BOX)
+						{
+							BoxCollider* boxA = static_cast<BoxCollider*>(bodyA.collider);
+							BoxCollider* boxB = static_cast<BoxCollider*>(bodyB.collider);
+
+							if (CollisionDetection::CheckBoxBoxCollision(
+								*boxA,
+								bodyA.position,
+								*boxB,
+								bodyB.position))
+							{
+								//simply push-back collision resolution
+								vec3 collisionVector = bodyA.position - bodyB.position;
+								if (length(collisionVector) > 0.0f)
+								{
+									vec3 collisionNormal = normalize(collisionVector);
+									bodyA.position += collisionNormal * 0.1f;
+									bodyB.position -= collisionNormal * 0.1f;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		//apply physics integration for all bodies
 		for (RigidBody& body : bodies)
 		{
-			if (!body.isDynamic) return;
+			if (!body.isDynamic) continue;
 
 			//apply simple euler integration
 			body.position += body.velocity * deltaTime;
@@ -81,6 +162,7 @@ namespace ElypsoPhysics
 				* body.rotation
 				* 0.5f
 				* deltaTime;
+
 			body.rotation += angularRotation;
 			body.rotation = normalize(body.rotation);
 

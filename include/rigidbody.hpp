@@ -21,6 +21,7 @@
 
 //physics
 #include "gameobjecthandle.hpp"
+#include "collider.hpp"
 
 namespace ElypsoPhysics
 {
@@ -31,12 +32,13 @@ namespace ElypsoPhysics
 	{
 	public:
 		GameObjectHandle handle; //Reference to the gameobject
-		vec3 position;          //Object position
-		quat rotation;          //Object rotation
-		vec3 velocity;          //Linear velocity
-		vec3 angularVelocity;   //Angular velocity
-		float mass;             //Object mass
-		bool isDynamic;         //Determines if the object moves
+		vec3 position;           //Object position
+		quat rotation;           //Object rotation
+		vec3 velocity;           //Linear velocity
+		vec3 angularVelocity;    //Angular velocity
+		float mass;              //Object mass
+		bool isDynamic;          //Determines if the object moves
+		Collider* collider;      //Pointer to a collider
 
 		RigidBody(
 			GameObjectHandle h,
@@ -49,7 +51,8 @@ namespace ElypsoPhysics
 			velocity(0.0f),
 			angularVelocity(0.0f),
 			mass(m),
-			isDynamic(m > 0.0f) {}
+			isDynamic(m > 0.0f),
+			collider(nullptr) {}
 
 		void ApplyForce(const vec3& force);
 		void ApplyTorque(const vec3& torque);

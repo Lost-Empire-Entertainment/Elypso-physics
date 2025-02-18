@@ -6,6 +6,14 @@
 //physics
 #include "gameobjecthandle.hpp"
 
-namespace ElypsoPhysics
+namespace std
 {
+	template <>
+	struct hash<ElypsoPhysics::GameObjectHandle>
+	{
+		size_t operator()(const ElypsoPhysics::GameObjectHandle& handle) const
+		{
+			return hash<uint32_t>()(handle.index) ^ (hash<uint32_t>()(handle.generation) << 1);
+		}
+	};
 }
