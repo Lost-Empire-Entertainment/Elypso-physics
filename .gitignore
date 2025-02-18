@@ -1,3 +1,7 @@
 # Elypso Physics ignored files and folders
 .vs/
 out/
+build-release/
+build-debug/
+install-release/
+install-debug/
