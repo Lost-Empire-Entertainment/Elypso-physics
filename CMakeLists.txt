@@ -5,7 +5,6 @@ if(NOT DEFINED CMAKE_INSTALL_PREFIX)
     set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/out/install")
 endif()
 
-
 if (WIN32)
     # Enable hot reload for MSVC
     if (POLICY CMP0141)
@@ -42,11 +41,7 @@ set(PHYSICS_SRC_DIR "${CMAKE_SOURCE_DIR}/src")
 set(PHYSICS_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/include")
 
 # External files
-set(EXT_GLM_DIR "${CMAKE_SOURCE_DIR}/../_external_shared/GLM")
-
-# Add GLM
-add_library(glm INTERFACE)
-target_include_directories(glm INTERFACE ${EXT_GLM_DIR})
+set(EXT_GLM_DIR "${CMAKE_SOURCE_DIR}/_external_shared/GLM")
 
 # Add source files
 file(GLOB_RECURSE PHYSICS_SOURCE_FILES CONFIGURE_DEPENDS
@@ -56,7 +51,10 @@ file(GLOB_RECURSE PHYSICS_SOURCE_FILES CONFIGURE_DEPENDS
 
 # Store include directories
 set(PHYSICS_INCLUDE_DIRS
+	# Library files
     ${PHYSICS_INCLUDE_DIR}
+	
+	# External libraries
     ${EXT_GLM_DIR}
 )
 
@@ -86,11 +84,11 @@ set_target_properties(ElypsoPhysics_Static PROPERTIES
 target_include_directories(ElypsoPhysics PRIVATE ${PHYSICS_INCLUDE_DIRS})
 
 if (WIN32)
-    target_link_libraries(ElypsoPhysics PRIVATE glm)
+    target_link_libraries(ElypsoPhysics PRIVATE)
 else()
     find_package(X11 QUIET)
     if (X11_FOUND)
-        target_link_libraries(ElypsoPhysics PRIVATE glm ${X11_LIBRARIES})
+        target_link_libraries(ElypsoPhysics PRIVATE ${X11_LIBRARIES})
     endif()
 endif()
 
