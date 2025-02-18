@@ -3,16 +3,9 @@
 //This is free software, and you are welcome to redistribute it under certain conditions.
 //Read LICENSE.md for more information.
 
-#include <iostream>
-
-#include "main.hpp"
-
-using std::cout;
+//physics
+#include "gameobjecthandle.hpp"
 
 namespace ElypsoPhysics
 {
-	void Core::Test1()
-	{
-		cout << "test1 was ran from ElypsoPhysics!\n";
-	}
 }
