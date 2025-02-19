@@ -13,6 +13,8 @@ namespace ElypsoPhysics
 		//static objects cant move
 		if (!isDynamic) return;
 
+		WakeUp();
+
 		vec3 acceleration = force / mass;
 		velocity += acceleration;
 	}
@@ -22,6 +24,8 @@ namespace ElypsoPhysics
 		//static objects cant move
 		if (!isDynamic) return;
 
+		WakeUp();
+
 		velocity += impulse / mass;
 	}
 
@@ -29,6 +33,8 @@ namespace ElypsoPhysics
 	{
 		//static objects cant move
 		if (!isDynamic) return;
+
+		WakeUp();
 
 		angularVelocity += torque / inertiaTensor;
 	}
@@ -52,5 +58,18 @@ namespace ElypsoPhysics
 			float inertia = (2.0f / 5.0f) * mass * (sphere->radius * sphere->radius);
 			inertiaTensor = vec3(inertia);
 		}
+	}
+
+	void RigidBody::WakeUp()
+	{
+		isSleeping = false;
+		sleepTimer = 0.0f;
+	}
+
+	void RigidBody::Sleep()
+	{
+		isSleeping = true;
+		velocity = vec3(0.0f);
+		angularVelocity = vec3(0.0f);
 	}
 }

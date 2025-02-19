@@ -15,6 +15,7 @@ using glm::length;
 using std::cerr;
 using std::cout;
 using std::make_unique;
+using std::min;
 
 namespace ElypsoPhysics
 {
@@ -72,14 +73,27 @@ namespace ElypsoPhysics
 	GameObjectHandle PhysicsWorld::CreateRigidBody(
 		const vec3& pos,
 		const quat& rot,
-		float mass)
+		float mass,
+		float restitution,
+		float friction,
+		float gravityFactor,
+		bool useGravity)
 	{
 		uint32_t index = static_cast<uint32_t>(bodies.size());
 		uint32_t generation = generations.size() > index ? generations[index] : 0;
 
 		GameObjectHandle handle(index, generation);
 
-		bodies.emplace_back(make_unique<RigidBody>(handle, pos, rot, mass));
+		bodies.emplace_back(make_unique<RigidBody>(
+			handle, 
+			pos, 
+			rot, 
+			mass,
+			restitution,
+			friction,
+			gravityFactor,
+			useGravity));
+
 		bodyMap[handle] = index;
 
 		if (generations.size() <= index) generations.push_back(0);
@@ -128,6 +142,13 @@ namespace ElypsoPhysics
 			{
 				RigidBody& bodyB = *bodies[j];
 
+				//skip if both bodies are sleeping (no need to check for collision)
+				if (bodyA.isSleeping
+					&& bodyB.isSleeping)
+				{
+					continue;
+				}
+
 				if (bodyA.collider.get()
 					&& bodyB.collider.get())
 				{
@@ -137,6 +158,9 @@ namespace ElypsoPhysics
 						if (length(collisionVector) > 0.0f)
 						{
 							vec3 collisionNormal = normalize(collisionVector);
+
+							bodyA.WakeUp();
+							bodyB.WakeUp();
 
 							//apply impulse-based collision response
 							ResolveCollision(bodyA, bodyB, collisionNormal);
@@ -156,7 +180,7 @@ namespace ElypsoPhysics
 
 			if (!body.isDynamic) continue;
 
-			if (body.useGravity) body.velocity += gravity * deltaTime;
+			if (body.useGravity) body.velocity += (gravity * body.gravityFactor) * deltaTime;
 
 			//apply simple euler integration
 			body.position += body.velocity * deltaTime;
@@ -177,6 +201,14 @@ namespace ElypsoPhysics
 			//apply basic damping
 			body.velocity *= 0.99f;
 			body.angularVelocity *= 0.98f;
+
+			if (length(body.velocity) < body.sleepThreshold
+				&& length(body.angularVelocity) < body.sleepThreshold)
+			{
+				body.sleepTimer += deltaTime;
+				if (body.sleepTimer > 2.0f) body.Sleep();
+			}
+			else body.WakeUp();
 		}
 	}
 
@@ -191,8 +223,8 @@ namespace ElypsoPhysics
 		//if objects are separating, do nothing
 		if (velocityAlongNormal > 0.0f) return;
 
-		//get restitution (bounciness)
-		float restitution = 0.5f; //should be changed to per-object
+		//combute combied restitution (take the minimum)
+		float restitution = min(bodyA.restitution, bodyB.restitution);
 
 		//compute impulse scalar
 		float impulseScalar = -(1.0f + restitution) * velocityAlongNormal;
@@ -217,8 +249,8 @@ namespace ElypsoPhysics
 
 		tangent = normalize(tangent);
 
-		//friction coefficient
-		float friction = 0.3f; //should be changed to per-object
+		//combute combined friction coefficient (average of both objects)
+		float friction = (bodyA.friction + bodyB.friction) * 0.5f;
 
 		//compute friction impulse
 		float frictionImpulseScalar = -dot(relativeVelocity, tangent);

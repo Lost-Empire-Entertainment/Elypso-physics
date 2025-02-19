@@ -49,7 +49,11 @@ namespace ElypsoPhysics
 		GameObjectHandle CreateRigidBody(
 			const vec3& pos, 
 			const quat& rot,
-			float mass = 1.0f);
+			float mass = 1.0f,
+			float restitution = 0.5f,
+			float friction = 0.3f,
+			float gravityFactor = 1.0f,
+			bool useGravity = true);
 
 		/// <summary>
 		/// Get a RigidBody by handle.

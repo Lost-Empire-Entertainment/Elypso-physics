@@ -43,13 +43,25 @@ namespace ElypsoPhysics
 		bool isDynamic;                //Determines if the object moves
 		unique_ptr<Collider> collider; //Smart pointer to the collider
 		vec3 inertiaTensor;            //Store precomputed inertia tensor
-		bool useGravity;			   //Object gravity state
+
+		float restitution;             //Bounciness factor
+		float friction;                //Surface friction
+		float gravityFactor;           //Custom gravity multiplier (1.0 = normal gravity)
+		bool useGravity;               //Controls if this object is affected by gravity
+
+		bool isSleeping = false;       //Track whether object is sleeping
+		float sleepThreshold = 0.01f;  //Velocity below this is considered "at rest"
+		float sleepTimer = 0.0f;       //Time the body has been inactive
 
 		RigidBody(
 			GameObjectHandle h,
 			const vec3& pos,
 			const quat& rot,
-			float m = 1.0f) :
+			float m = 1.0f,
+			float rest = 0.5f,
+			float frict = 0.3f,
+			float gFactor = 1.0f,
+			bool gravityEnabled = true) :
 			handle(h),
 			position(pos),
 			rotation(rot),
@@ -57,7 +69,11 @@ namespace ElypsoPhysics
 			angularVelocity(0.0f),
 			mass(m),
 			isDynamic(m > 0.0f),
-			collider(nullptr) 
+			collider(nullptr),
+			restitution(rest),
+			friction(frict),
+			gravityFactor(gFactor),
+			useGravity(gravityEnabled)
 		{
 			ComputeInertiaTensor();
 		}
@@ -78,5 +94,14 @@ namespace ElypsoPhysics
 		/// Precompute inertia tensor
 		/// </summary>
 		void ComputeInertiaTensor();
+
+		/// <summary>
+		/// Wake up the body
+		/// </summary>
+		void WakeUp();
+		/// <summary>
+		/// Put the body to sleep
+		/// </summary>
+		void Sleep();
 	};
 }
