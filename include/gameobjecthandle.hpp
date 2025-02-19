@@ -44,7 +44,9 @@ namespace std
 	{
 		size_t operator()(const ElypsoPhysics::GameObjectHandle& handle) const
 		{
-			return hash<uint32_t>()(handle.index) ^ (hash<uint32_t>()(handle.generation) << 1);
+			size_t h1 = hash<uint32_t>()(handle.index);
+			size_t h2 = hash<uint32_t>()(handle.generation);
+			return h1 ^ (h2 + 0x9e3779b9 + (h1 << 6) + (h1 >> 2));
 		}
 	};
 }

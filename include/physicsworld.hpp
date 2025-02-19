@@ -51,7 +51,8 @@ namespace ElypsoPhysics
 			const quat& rot,
 			float mass = 1.0f,
 			float restitution = 0.5f,
-			float friction = 0.3f,
+			float staticFriction = 0.5f,
+			float dynamicFriction = 0.3f,
 			float gravityFactor = 1.0f,
 			bool useGravity = true);
 
@@ -70,7 +71,11 @@ namespace ElypsoPhysics
 		/// </summary>
 		void StepSimulation(float deltaTime);
 
-		void ResolveCollision(RigidBody& bodyA, RigidBody& bodyB, const vec3& collisionNormal);
+		void ResolveCollision(
+			RigidBody& bodyA, 
+			RigidBody& bodyB, 
+			const vec3& collisionNormal,
+			const vec3& contactPoint);
 
 		void ApplyFriction(RigidBody& bodyA, RigidBody& bodyB, const vec3& collisionNormal);
 

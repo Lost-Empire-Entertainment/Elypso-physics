@@ -45,7 +45,8 @@ namespace ElypsoPhysics
 		vec3 inertiaTensor;            //Store precomputed inertia tensor
 
 		float restitution;             //Bounciness factor
-		float friction;                //Surface friction
+		float staticFriction;          //Prevents movement when still
+		float dynamicFriction;         //Slows down moving objects
 		float gravityFactor;           //Custom gravity multiplier (1.0 = normal gravity)
 		bool useGravity;               //Controls if this object is affected by gravity
 
@@ -59,7 +60,8 @@ namespace ElypsoPhysics
 			const quat& rot,
 			float m = 1.0f,
 			float rest = 0.5f,
-			float frict = 0.3f,
+			float staticFrict = 0.5f,
+			float dynamicFrict = 0.3f,
 			float gFactor = 1.0f,
 			bool gravityEnabled = true) :
 			handle(h),
@@ -71,9 +73,11 @@ namespace ElypsoPhysics
 			isDynamic(m > 0.0f),
 			collider(nullptr),
 			restitution(rest),
-			friction(frict),
+			staticFriction(staticFrict),
+			dynamicFriction(dynamicFrict),
 			gravityFactor(gFactor),
-			useGravity(gravityEnabled)
+			useGravity(gravityEnabled),
+			inertiaTensor(vec3(1.0f))
 		{
 			ComputeInertiaTensor();
 		}

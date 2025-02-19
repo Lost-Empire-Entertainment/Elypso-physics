@@ -75,7 +75,8 @@ namespace ElypsoPhysics
 		const quat& rot,
 		float mass,
 		float restitution,
-		float friction,
+		float staticFriction,
+		float dynamicFriction,
 		float gravityFactor,
 		bool useGravity)
 	{
@@ -90,7 +91,8 @@ namespace ElypsoPhysics
 			rot, 
 			mass,
 			restitution,
-			friction,
+			staticFriction,
+			dynamicFriction,
 			gravityFactor,
 			useGravity));
 
@@ -149,25 +151,45 @@ namespace ElypsoPhysics
 					continue;
 				}
 
-				if (bodyA.collider.get()
-					&& bodyB.collider.get())
+				//skip if one or both bodies are missing collider
+				if (!bodyA.collider
+					|| !bodyB.collider)
 				{
-					if (CollisionDetection::CheckAABBCollision(bodyA, bodyB))
+					continue;
+				}
+
+				//skip if objects are too far apart
+				if (length(bodyA.position - bodyB.position) > 10.0f) continue;
+
+				if (CollisionDetection::CheckAABBCollision(bodyA, bodyB))
+				{
+					vec3 collisionVector = bodyA.position - bodyB.position;
+					if (length(collisionVector) > 0.0f)
 					{
-						vec3 collisionVector = bodyA.position - bodyB.position;
-						if (length(collisionVector) > 0.0f)
+						vec3 collisionNormal = normalize(collisionVector);
+
+						bodyA.WakeUp();
+						bodyB.WakeUp();
+
+						//compute mass-based displacement
+						if (bodyA.mass > 0.0f
+							&& bodyB.mass > 0.0f)
 						{
-							vec3 collisionNormal = normalize(collisionVector);
+							float totalMass = bodyA.mass + bodyB.mass;
+							float ratioA = bodyB.mass / totalMass;
+							float ratioB = bodyA.mass / totalMass;
 
-							bodyA.WakeUp();
-							bodyB.WakeUp();
-
-							//apply impulse-based collision response
-							ResolveCollision(bodyA, bodyB, collisionNormal);
-
-							//apply friction
-							ApplyFriction(bodyA, bodyB, collisionNormal);
+							bodyA.position += collisionNormal * (0.1f * ratioA);
+							bodyB.position -= collisionNormal * (0.1f * ratioB);
 						}
+
+						vec3 contactPoint = (bodyA.position + bodyB.position) * 0.5f;
+
+						//apply impulse-based collision response
+						ResolveCollision(bodyA, bodyB, collisionNormal, contactPoint);
+
+						//apply friction
+						ApplyFriction(bodyA, bodyB, collisionNormal);
 					}
 				}
 			}
@@ -212,7 +234,11 @@ namespace ElypsoPhysics
 		}
 	}
 
-	void PhysicsWorld::ResolveCollision(RigidBody& bodyA, RigidBody& bodyB, const vec3& collisionNormal)
+	void PhysicsWorld::ResolveCollision(
+		RigidBody& bodyA, 
+		RigidBody& bodyB, 
+		const vec3& collisionNormal,
+		const vec3& contactPoint)
 	{
 		//compute relative velocity
 		vec3 relativeVelocity = bodyB.velocity - bodyA.velocity;
@@ -226,14 +252,38 @@ namespace ElypsoPhysics
 		//combute combied restitution (take the minimum)
 		float restitution = min(bodyA.restitution, bodyB.restitution);
 
-		//compute impulse scalar
-		float impulseScalar = -(1.0f + restitution) * velocityAlongNormal;
-		impulseScalar /= (1.0f / bodyA.mass) + (1.0f / bodyB.mass);
+		//compute contact offsets
+		vec3 rA = contactPoint - bodyA.position;
+		vec3 rB = contactPoint - bodyB.position;
 
-		//apply impulse
+		//compute inverse mass and inverse inertia tensors
+		float invMassA = (bodyA.mass > 0.0f) ? (1.0f / bodyA.mass) : 0.0f;
+		float invMassB = (bodyB.mass > 0.0f) ? (1.0f / bodyB.mass) : 0.0f;
+
+		vec3 invInertiaA = (bodyA.mass > 0.0f) ? (1.0f / bodyA.inertiaTensor) : vec3(0.0f);
+		vec3 invInertiaB = (bodyB.mass > 0.0f) ? (1.0f / bodyB.inertiaTensor) : vec3(0.0f);
+
+		//compute impulse scalar
+		vec3 crossRA_N = cross(rA, collisionNormal);
+		vec3 crossRB_N = cross(rB, collisionNormal);
+
+		float denominator = invMassA + invMassB
+			+ dot(crossRA_N * invInertiaA, crossRA_N)
+			+ dot(crossRB_N * invInertiaB, crossRB_N);
+
+		float impulseScalar = -(1.0f + restitution) * velocityAlongNormal / denominator;
+
+		//apply linear impulse
 		vec3 impulse = impulseScalar * collisionNormal;
-		bodyA.velocity -= impulse / bodyA.mass;
-		bodyB.velocity += impulse / bodyB.mass;
+		bodyA.velocity -= impulse * invMassA;
+		bodyB.velocity += impulse * invMassB;
+
+		//apply angular impulse (torque)
+		vec3 torqueImpulseA = cross(rA, impulse) * invInertiaA;
+		vec3 torqueImpulseB = cross(rB, impulse) * invInertiaB;
+
+		bodyA.angularVelocity -= torqueImpulseA;
+		bodyB.angularVelocity += torqueImpulseB;
 	}
 
 	void PhysicsWorld::ApplyFriction(RigidBody& bodyA, RigidBody& bodyB, const vec3& collisionNormal)
@@ -249,18 +299,30 @@ namespace ElypsoPhysics
 
 		tangent = normalize(tangent);
 
-		//combute combined friction coefficient (average of both objects)
-		float friction = (bodyA.friction + bodyB.friction) * 0.5f;
+		//compute static and dynamic friction coefficients (use average)
+		float staticFriction = (bodyA.staticFriction + bodyB.staticFriction) * 0.5f;
+		float dynamicFriction = (bodyA.dynamicFriction + bodyB.dynamicFriction) * 0.5f;
 
-		//compute friction impulse
+		//compute friction impulse magnitude
 		float frictionImpulseScalar = -dot(relativeVelocity, tangent);
 		frictionImpulseScalar /= (1.0f / bodyA.mass) + (1.0f / bodyB.mass);
-		frictionImpulseScalar *= friction;
 
 		vec3 frictionImpulse = frictionImpulseScalar * tangent;
 
-		//apply friction impulse
-		bodyA.velocity -= frictionImpulse / bodyA.mass;
-		bodyB.velocity += frictionImpulse / bodyB.mass;
+		//static friction check
+		float maxStaticFriction = staticFriction * length(frictionImpulse);
+		if (length(frictionImpulse) < maxStaticFriction)
+		{
+			//apply full static friction
+			bodyA.velocity -= frictionImpulse / bodyA.mass;
+			bodyB.velocity += frictionImpulse / bodyB.mass;
+		}
+		else
+		{
+			//apply dynamic friction instead
+			frictionImpulse *= dynamicFriction;
+			bodyA.velocity -= frictionImpulse / bodyA.mass;
+			bodyB.velocity += frictionImpulse / bodyB.mass;
+		}
 	}
 }

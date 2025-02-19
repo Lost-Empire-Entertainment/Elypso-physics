@@ -41,6 +41,8 @@ namespace ElypsoPhysics
 
 	void RigidBody::ComputeInertiaTensor()
 	{
+		if (!collider) return;
+
 		if (collider->type == ColliderType::BOX)
 		{
 			BoxCollider* box = static_cast<BoxCollider*>(collider.get());
