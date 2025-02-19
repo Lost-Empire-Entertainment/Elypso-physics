@@ -49,6 +49,8 @@ namespace ElypsoPhysics
 		GameObjectHandle CreateRigidBody(
 			const vec3& pos, 
 			const quat& rot,
+			ColliderType colliderType,
+			const vec3& colliderSizeOrRadius,
 			float mass = 1.0f,
 			float restitution = 0.5f,
 			float staticFriction = 0.5f,

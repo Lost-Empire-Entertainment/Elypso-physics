@@ -16,6 +16,7 @@ using std::cerr;
 using std::cout;
 using std::make_unique;
 using std::min;
+using std::move;
 
 namespace ElypsoPhysics
 {
@@ -73,6 +74,8 @@ namespace ElypsoPhysics
 	GameObjectHandle PhysicsWorld::CreateRigidBody(
 		const vec3& pos,
 		const quat& rot,
+		ColliderType colliderType,
+		const vec3& colliderSizeOrRadius,
 		float mass,
 		float restitution,
 		float staticFriction,
@@ -85,17 +88,29 @@ namespace ElypsoPhysics
 
 		GameObjectHandle handle(index, generation);
 
-		bodies.emplace_back(make_unique<RigidBody>(
-			handle, 
-			pos, 
-			rot, 
+		//create the rigidbody
+		auto rb = make_unique<RigidBody>(
+			handle,
+			pos,
+			rot,
 			mass,
 			restitution,
 			staticFriction,
 			dynamicFriction,
 			gravityFactor,
-			useGravity));
+			useGravity);
 
+		//assign collider based on collider type
+		if (colliderType == ColliderType::BOX)
+		{
+			rb->collider = make_unique<BoxCollider>(handle, colliderSizeOrRadius);
+		}
+		else if (colliderType == ColliderType::SPHERE)
+		{
+			rb->collider = make_unique<SphereCollider>(handle, colliderSizeOrRadius.x);
+		}
+
+		bodies.push_back(move(rb));
 		bodyMap[handle] = index;
 
 		if (generations.size() <= index) generations.push_back(0);
