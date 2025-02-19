@@ -66,6 +66,10 @@ namespace ElypsoPhysics
 		/// </summary>
 		void StepSimulation(float deltaTime);
 
+		void ResolveCollision(RigidBody& bodyA, RigidBody& bodyB, const vec3& collisionNormal);
+
+		void ApplyFriction(RigidBody& bodyA, RigidBody& bodyB, const vec3& collisionNormal);
+
 		const vec3& GetGravity() const { return gravity; }
 
 	private:

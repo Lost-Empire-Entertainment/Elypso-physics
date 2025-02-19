@@ -133,65 +133,16 @@ namespace ElypsoPhysics
 				{
 					if (CollisionDetection::CheckAABBCollision(bodyA, bodyB))
 					{
-						//sphere-sphere collision
-						if (bodyA.collider.get()->type == ColliderType::SPHERE
-							&& bodyB.collider.get()->type == ColliderType::SPHERE)
+						vec3 collisionVector = bodyA.position - bodyB.position;
+						if (length(collisionVector) > 0.0f)
 						{
-							SphereCollider* sphereA = static_cast<SphereCollider*>(bodyA.collider.get());
-							SphereCollider* sphereB = static_cast<SphereCollider*>(bodyB.collider.get());
+							vec3 collisionNormal = normalize(collisionVector);
 
-							if (CollisionDetection::CheckSphereSphereCollision(
-								*sphereA,
-								bodyA.position,
-								*sphereB,
-								bodyB.position))
-							{
-								//simple push-back collision resolution
-								vec3 collisionVector = bodyA.position - bodyB.position;
-								if (length(collisionVector) > 0.0f)
-								{
-									vec3 collisionNormal = normalize(collisionVector);
+							//apply impulse-based collision response
+							ResolveCollision(bodyA, bodyB, collisionNormal);
 
-									//calculate mass-based displacement ratios
-									float totalMass = bodyA.mass + bodyB.mass;
-									float ratioA = bodyB.mass / totalMass;
-									float ratioB = bodyA.mass / totalMass;
-
-									//apply proportional movement based on mass
-									bodyA.position += collisionNormal * (0.1f * ratioA);
-									bodyB.position -= collisionNormal * (0.1f * ratioB);
-								}
-							}
-						}
-
-						//box-box collision
-						else if (bodyA.collider.get()->type == ColliderType::BOX
-							&& bodyB.collider.get()->type == ColliderType::BOX)
-						{
-							BoxCollider* boxA = static_cast<BoxCollider*>(bodyA.collider.get());
-							BoxCollider* boxB = static_cast<BoxCollider*>(bodyB.collider.get());
-
-							if (CollisionDetection::CheckBoxBoxCollision(
-								*boxA,
-								bodyA.position,
-								*boxB,
-								bodyB.position))
-							{
-								vec3 collisionVector = bodyA.position - bodyB.position;
-								if (length(collisionVector) > 0.0f)
-								{
-									vec3 collisionNormal = normalize(collisionVector);
-
-									//calculate mass-based displacement ratios
-									float totalMass = bodyA.mass + bodyB.mass;
-									float ratioA = bodyB.mass / totalMass;
-									float ratioB = bodyA.mass / totalMass;
-
-									//apply proportional movement based on mass
-									bodyA.position += collisionNormal * (0.1f * ratioA);
-									bodyB.position -= collisionNormal * (0.1f * ratioB);
-								}
-							}
+							//apply friction
+							ApplyFriction(bodyA, bodyB, collisionNormal);
 						}
 					}
 				}
@@ -205,7 +156,7 @@ namespace ElypsoPhysics
 
 			if (!body.isDynamic) continue;
 
-			body.velocity += gravity * deltaTime;
+			if (body.useGravity) body.velocity += gravity * deltaTime;
 
 			//apply simple euler integration
 			body.position += body.velocity * deltaTime;
@@ -227,5 +178,57 @@ namespace ElypsoPhysics
 			body.velocity *= 0.99f;
 			body.angularVelocity *= 0.98f;
 		}
+	}
+
+	void PhysicsWorld::ResolveCollision(RigidBody& bodyA, RigidBody& bodyB, const vec3& collisionNormal)
+	{
+		//compute relative velocity
+		vec3 relativeVelocity = bodyB.velocity - bodyA.velocity;
+
+		//compute velocity along the collision normal
+		float velocityAlongNormal = dot(relativeVelocity, collisionNormal);
+
+		//if objects are separating, do nothing
+		if (velocityAlongNormal > 0.0f) return;
+
+		//get restitution (bounciness)
+		float restitution = 0.5f; //should be changed to per-object
+
+		//compute impulse scalar
+		float impulseScalar = -(1.0f + restitution) * velocityAlongNormal;
+		impulseScalar /= (1.0f / bodyA.mass) + (1.0f / bodyB.mass);
+
+		//apply impulse
+		vec3 impulse = impulseScalar * collisionNormal;
+		bodyA.velocity -= impulse / bodyA.mass;
+		bodyB.velocity += impulse / bodyB.mass;
+	}
+
+	void PhysicsWorld::ApplyFriction(RigidBody& bodyA, RigidBody& bodyB, const vec3& collisionNormal)
+	{
+		//compute relative velocity
+		vec3 relativeVelocity = bodyB.velocity - bodyA.velocity;
+
+		//compute tangetial velocity (velocity perpendicular to the normal)
+		vec3 tangent = relativeVelocity - dot(relativeVelocity, collisionNormal) * collisionNormal;
+
+		//no significant tangential velocity
+		if (length(tangent) < 0.001f) return;
+
+		tangent = normalize(tangent);
+
+		//friction coefficient
+		float friction = 0.3f; //should be changed to per-object
+
+		//compute friction impulse
+		float frictionImpulseScalar = -dot(relativeVelocity, tangent);
+		frictionImpulseScalar /= (1.0f / bodyA.mass) + (1.0f / bodyB.mass);
+		frictionImpulseScalar *= friction;
+
+		vec3 frictionImpulse = frictionImpulseScalar * tangent;
+
+		//apply friction impulse
+		bodyA.velocity -= frictionImpulse / bodyA.mass;
+		bodyB.velocity += frictionImpulse / bodyB.mass;
 	}
 }

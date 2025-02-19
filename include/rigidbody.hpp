@@ -43,6 +43,7 @@ namespace ElypsoPhysics
 		bool isDynamic;                //Determines if the object moves
 		unique_ptr<Collider> collider; //Smart pointer to the collider
 		vec3 inertiaTensor;            //Store precomputed inertia tensor
+		bool useGravity;			   //Object gravity state
 
 		RigidBody(
 			GameObjectHandle h,
