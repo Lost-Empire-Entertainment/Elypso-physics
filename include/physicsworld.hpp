@@ -18,6 +18,7 @@
 #include <vector>
 #include <unordered_map>
 #include <cstdint>
+#include <memory>
 
 //external
 #include "glm.hpp"
@@ -32,12 +33,15 @@ namespace ElypsoPhysics
 	using glm::vec3;
 	using glm::quat;
 	using std::hash;
+	using std::unique_ptr;
 
 	class PHYSICS_API PhysicsWorld
 	{
 	public:
-		PhysicsWorld();
-		~PhysicsWorld();
+		static PhysicsWorld& GetInstance();
+
+		void InitializePhysics(const vec3& gravity = vec3(0.0f, -9.81f, 0.0f));
+		void ShutdownPhysics();
 
 		/// <summary>
 		/// Create a RigidBody and return its handle.
@@ -62,9 +66,20 @@ namespace ElypsoPhysics
 		/// </summary>
 		void StepSimulation(float deltaTime);
 
+		const vec3& GetGravity() const { return gravity; }
+
 	private:
-		vector<RigidBody> bodies;                        //Array of all rigidbodies
+		PhysicsWorld();
+		~PhysicsWorld();
+		PhysicsWorld(const PhysicsWorld&) = delete;
+		PhysicsWorld& operator=(const PhysicsWorld&) = delete;
+
+		bool isInitialized = false;
+
+		vector<unique_ptr<RigidBody>> bodies;                        //Array of all rigidbodies
 		unordered_map<GameObjectHandle, size_t, hash<GameObjectHandle>> bodyMap; //Map for quick lookup
 		vector<uint32_t> generations;                    //Tracks generation of each index
+
+		vec3 gravity = vec3(0.0f, -9.81f, 0.0f);
 	};
 }

@@ -15,6 +15,8 @@
 	#define PHYSICS_API
 #endif
 
+#include <memory>
+
 //external
 #include "glm.hpp"
 #include "gtc/quaternion.hpp"
@@ -27,18 +29,20 @@ namespace ElypsoPhysics
 {
 	using glm::vec3;
 	using glm::quat;
+	using std::unique_ptr;
 
 	class PHYSICS_API RigidBody
 	{
 	public:
-		GameObjectHandle handle; //Reference to the gameobject
-		vec3 position;           //Object position
-		quat rotation;           //Object rotation
-		vec3 velocity;           //Linear velocity
-		vec3 angularVelocity;    //Angular velocity
-		float mass;              //Object mass
-		bool isDynamic;          //Determines if the object moves
-		Collider* collider;      //Pointer to a collider
+		GameObjectHandle handle;       //Reference to the gameobject
+		vec3 position;                 //Object position
+		quat rotation;                 //Object rotation
+		vec3 velocity;                 //Linear velocity
+		vec3 angularVelocity;          //Angular velocity
+		float mass;                    //Object mass
+		bool isDynamic;                //Determines if the object moves
+		unique_ptr<Collider> collider; //Smart pointer to the collider
+		vec3 inertiaTensor;            //Store precomputed inertia tensor
 
 		RigidBody(
 			GameObjectHandle h,
@@ -52,9 +56,26 @@ namespace ElypsoPhysics
 			angularVelocity(0.0f),
 			mass(m),
 			isDynamic(m > 0.0f),
-			collider(nullptr) {}
+			collider(nullptr) 
+		{
+			ComputeInertiaTensor();
+		}
 
+		/// <summary>
+		/// Apply linear force
+		/// </summary>
 		void ApplyForce(const vec3& force);
+		/// <summary>
+		/// Apply an instant impulse (collision effects)
+		/// </summary>
+		void ApplyImpulse(const vec3& impulse);
+		/// <summary>
+		/// Apply rotational force
+		/// </summary>
 		void ApplyTorque(const vec3& torque);
+		/// <summary>
+		/// Precompute inertia tensor
+		/// </summary>
+		void ComputeInertiaTensor();
 	};
 }

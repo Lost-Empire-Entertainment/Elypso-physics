@@ -44,6 +44,9 @@ namespace ElypsoPhysics
 			handle(h) {}
 		
 		virtual ~Collider() = default;
+
+		Collider(const Collider&) = delete;
+		Collider& operator=(const Collider&) = delete;
 	};
 
 	class PHYSICS_API BoxCollider : public Collider

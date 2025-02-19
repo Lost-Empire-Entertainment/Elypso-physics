@@ -25,11 +25,11 @@ namespace ElypsoPhysics
 		vec3 extentsA;
 		if (a.collider->type == ColliderType::BOX)
 		{
-			extentsA = static_cast<BoxCollider*>(a.collider)->halfExtents;
+			extentsA = static_cast<BoxCollider*>(a.collider.get())->halfExtents;
 		}
 		else if (a.collider->type == ColliderType::SPHERE)
 		{
-			float radius = static_cast<SphereCollider*>(a.collider)->radius;
+			float radius = static_cast<SphereCollider*>(a.collider.get())->radius;
 			extentsA = vec3(radius);
 		}
 		else extentsA = vec3(0);
@@ -37,11 +37,11 @@ namespace ElypsoPhysics
 		vec3 extentsB;
 		if (b.collider->type == ColliderType::BOX)
 		{
-			extentsB = static_cast<BoxCollider*>(b.collider)->halfExtents;
+			extentsB = static_cast<BoxCollider*>(b.collider.get())->halfExtents;
 		}
 		else if (b.collider->type == ColliderType::SPHERE)
 		{
-			float radius = static_cast<SphereCollider*>(b.collider)->radius;
+			float radius = static_cast<SphereCollider*>(b.collider.get())->radius;
 			extentsB = vec3(radius);
 		}
 		else extentsB = vec3(0);

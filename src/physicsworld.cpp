@@ -3,6 +3,8 @@
 //This is free software, and you are welcome to redistribute it under certain conditions.
 //Read LICENSE.md for more information.
 
+#include <iostream>
+
 //physics
 #include "physicsworld.hpp"
 #include "collisiondetection.hpp"
@@ -10,23 +12,61 @@
 using std::swap;
 using glm::normalize;
 using glm::length;
+using std::cerr;
+using std::cout;
+using std::make_unique;
 
 namespace ElypsoPhysics
 {
-	PhysicsWorld::PhysicsWorld()
+	PhysicsWorld& PhysicsWorld::GetInstance()
 	{
-
+		static PhysicsWorld instance;
+		return instance;
 	}
+
+	PhysicsWorld::PhysicsWorld() {}
 
 	PhysicsWorld::~PhysicsWorld()
 	{
-		for (RigidBody& body : bodies)
+		if (isInitialized)
 		{
-			delete body.collider; //free dynamically allocated colliders
+			cerr << "Error: Elypso Physics was not properly shut down. Call ShutdownPhysics() before destruction.\n";
 		}
+	}
+
+	void PhysicsWorld::InitializePhysics(const vec3& newGravity)
+	{
+		if (isInitialized)
+		{
+			cerr << "Error: Elypso Physics is already initialized!\n";
+			return;
+		}
+
 		bodies.clear();
 		bodyMap.clear();
 		generations.clear();
+
+		gravity = newGravity;
+
+		isInitialized = true;
+
+		cout << "Initialized Elypso Physics!\n";
+	}
+
+	void PhysicsWorld::ShutdownPhysics()
+	{
+		if (!isInitialized)
+		{
+			cerr << "Error: Cannot shut down Elypso Physics because it has not yet been initialized!\n";
+			return;
+		}
+
+		bodies.clear();
+		bodyMap.clear();
+		generations.clear();
+		isInitialized = false;
+
+		cout << "Successfully shut down Elypso Physics!\n";
 	}
 
 	GameObjectHandle PhysicsWorld::CreateRigidBody(
@@ -39,7 +79,7 @@ namespace ElypsoPhysics
 
 		GameObjectHandle handle(index, generation);
 
-		bodies.emplace_back(handle, pos, rot, mass);
+		bodies.emplace_back(make_unique<RigidBody>(handle, pos, rot, mass));
 		bodyMap[handle] = index;
 
 		if (generations.size() <= index) generations.push_back(0);
@@ -52,7 +92,7 @@ namespace ElypsoPhysics
 		auto it = bodyMap.find(handle);
 		if (it != bodyMap.end())
 		{
-			return &bodies[it->second];
+			return bodies[it->second].get();
 		}
 		return nullptr;
 	}
@@ -70,10 +110,10 @@ namespace ElypsoPhysics
 			if (index < bodies.size() - 1)
 			{
 				swap(bodies[index], bodies.back());
-				bodyMap[bodies[index].handle] = index;
+				bodyMap[bodies[index].get()->handle] = index;
 			}
 
-			bodies.pop_back();
+			bodies.erase(bodies.begin() + index);
 		}
 	}
 
@@ -82,23 +122,23 @@ namespace ElypsoPhysics
 		//collision detection and resolution
 		for (size_t i = 0; i < bodies.size(); i++)
 		{
-			RigidBody& bodyA = bodies[i];
+			RigidBody& bodyA = *bodies[i];
 
 			for (size_t j = i + 1; j < bodies.size(); j++)
 			{
-				RigidBody& bodyB = bodies[j];
+				RigidBody& bodyB = *bodies[j];
 
-				if (bodyA.collider
-					&& bodyB.collider)
+				if (bodyA.collider.get()
+					&& bodyB.collider.get())
 				{
 					if (CollisionDetection::CheckAABBCollision(bodyA, bodyB))
 					{
 						//sphere-sphere collision
-						if (bodyA.collider->type == ColliderType::SPHERE
-							&& bodyB.collider->type == ColliderType::SPHERE)
+						if (bodyA.collider.get()->type == ColliderType::SPHERE
+							&& bodyB.collider.get()->type == ColliderType::SPHERE)
 						{
-							SphereCollider* sphereA = static_cast<SphereCollider*>(bodyA.collider);
-							SphereCollider* sphereB = static_cast<SphereCollider*>(bodyB.collider);
+							SphereCollider* sphereA = static_cast<SphereCollider*>(bodyA.collider.get());
+							SphereCollider* sphereB = static_cast<SphereCollider*>(bodyB.collider.get());
 
 							if (CollisionDetection::CheckSphereSphereCollision(
 								*sphereA,
@@ -111,18 +151,25 @@ namespace ElypsoPhysics
 								if (length(collisionVector) > 0.0f)
 								{
 									vec3 collisionNormal = normalize(collisionVector);
-									bodyA.position += collisionNormal * 0.1f;
-									bodyB.position -= collisionNormal * 0.1f;
+
+									//calculate mass-based displacement ratios
+									float totalMass = bodyA.mass + bodyB.mass;
+									float ratioA = bodyB.mass / totalMass;
+									float ratioB = bodyA.mass / totalMass;
+
+									//apply proportional movement based on mass
+									bodyA.position += collisionNormal * (0.1f * ratioA);
+									bodyB.position -= collisionNormal * (0.1f * ratioB);
 								}
 							}
 						}
 
 						//box-box collision
-						else if (bodyA.collider->type == ColliderType::BOX
-							&& bodyB.collider->type == ColliderType::BOX)
+						else if (bodyA.collider.get()->type == ColliderType::BOX
+							&& bodyB.collider.get()->type == ColliderType::BOX)
 						{
-							BoxCollider* boxA = static_cast<BoxCollider*>(bodyA.collider);
-							BoxCollider* boxB = static_cast<BoxCollider*>(bodyB.collider);
+							BoxCollider* boxA = static_cast<BoxCollider*>(bodyA.collider.get());
+							BoxCollider* boxB = static_cast<BoxCollider*>(bodyB.collider.get());
 
 							if (CollisionDetection::CheckBoxBoxCollision(
 								*boxA,
@@ -130,13 +177,19 @@ namespace ElypsoPhysics
 								*boxB,
 								bodyB.position))
 							{
-								//simply push-back collision resolution
 								vec3 collisionVector = bodyA.position - bodyB.position;
 								if (length(collisionVector) > 0.0f)
 								{
 									vec3 collisionNormal = normalize(collisionVector);
-									bodyA.position += collisionNormal * 0.1f;
-									bodyB.position -= collisionNormal * 0.1f;
+
+									//calculate mass-based displacement ratios
+									float totalMass = bodyA.mass + bodyB.mass;
+									float ratioA = bodyB.mass / totalMass;
+									float ratioB = bodyA.mass / totalMass;
+
+									//apply proportional movement based on mass
+									bodyA.position += collisionNormal * (0.1f * ratioA);
+									bodyB.position -= collisionNormal * (0.1f * ratioB);
 								}
 							}
 						}
@@ -146,9 +199,13 @@ namespace ElypsoPhysics
 		}
 
 		//apply physics integration for all bodies
-		for (RigidBody& body : bodies)
+		for (auto& bodyPtr : bodies)
 		{
+			RigidBody& body = *bodyPtr;
+
 			if (!body.isDynamic) continue;
+
+			body.velocity += gravity * deltaTime;
 
 			//apply simple euler integration
 			body.position += body.velocity * deltaTime;
