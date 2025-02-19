@@ -22,6 +22,10 @@ namespace ElypsoPhysics
 			return false;
 		}
 
+		//broad-phase radius check
+		float maxDistance = a.collider->boundingRadius + b.collider->boundingRadius;
+		if (length(a.position - b.position) > maxDistance) return false;
+
 		vec3 extentsA;
 		if (a.collider->type == ColliderType::BOX)
 		{

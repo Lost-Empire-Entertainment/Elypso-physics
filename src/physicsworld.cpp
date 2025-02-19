@@ -174,7 +174,8 @@ namespace ElypsoPhysics
 				}
 
 				//skip if objects are too far apart
-				if (length(bodyA.position - bodyB.position) > 10.0f) continue;
+				float maxDistance = bodyA.collider->boundingRadius + bodyB.collider->boundingRadius;
+				if (length(bodyA.position - bodyB.position) > maxDistance) continue;
 
 				if (CollisionDetection::CheckAABBCollision(bodyA, bodyB))
 				{
@@ -186,16 +187,19 @@ namespace ElypsoPhysics
 						bodyA.WakeUp();
 						bodyB.WakeUp();
 
-						//compute mass-based displacement
-						if (bodyA.mass > 0.0f
-							&& bodyB.mass > 0.0f)
+						//compute penetration depth based on actual overlap
+						float penetrationDepth = maxDistance - length(bodyA.position - bodyB.position);
+						if (penetrationDepth > 0.0f)
 						{
 							float totalMass = bodyA.mass + bodyB.mass;
 							float ratioA = bodyB.mass / totalMass;
 							float ratioB = bodyA.mass / totalMass;
 
-							bodyA.position += collisionNormal * (0.1f * ratioA);
-							bodyB.position -= collisionNormal * (0.1f * ratioB);
+							const float correctionFactor = 0.8f;
+							vec3 correction = collisionNormal * (penetrationDepth * correctionFactor);
+
+							bodyA.position += correction * ratioA;
+							bodyB.position -= correction * ratioB;
 						}
 
 						vec3 contactPoint = (bodyA.position + bodyB.position) * 0.5f;
@@ -235,17 +239,26 @@ namespace ElypsoPhysics
 			body.rotation += angularRotation;
 			body.rotation = normalize(body.rotation);
 
-			//apply basic damping
-			body.velocity *= 0.99f;
-			body.angularVelocity *= 0.98f;
+			float linearDampingFactor = pow(0.99f, deltaTime * 60.0f);
+			float angularDampingFactor = pow(0.98f, deltaTime * 60.0f);
+
+			body.velocity *= linearDampingFactor;
+			body.angularVelocity *= angularDampingFactor;
 
 			if (length(body.velocity) < body.sleepThreshold
 				&& length(body.angularVelocity) < body.sleepThreshold)
 			{
 				body.sleepTimer += deltaTime;
-				if (body.sleepTimer > 2.0f) body.Sleep();
+				if (body.sleepTimer > 2.0f)
+				{
+					body.Sleep();
+				}
 			}
-			else body.WakeUp();
+			else
+			{
+				body.sleepTimer = 0.0f; //feset if there's movement
+				body.WakeUp();
+			}
 		}
 	}
 
@@ -299,6 +312,10 @@ namespace ElypsoPhysics
 
 		bodyA.angularVelocity -= torqueImpulseA;
 		bodyB.angularVelocity += torqueImpulseB;
+
+		//clamp small residual angular velocities
+		if (length(bodyA.angularVelocity) < 0.01f) bodyA.angularVelocity = vec3(0.0f);
+		if (length(bodyB.angularVelocity) < 0.01f) bodyB.angularVelocity = vec3(0.0f);
 	}
 
 	void PhysicsWorld::ApplyFriction(RigidBody& bodyA, RigidBody& bodyB, const vec3& collisionNormal)
@@ -326,7 +343,7 @@ namespace ElypsoPhysics
 
 		//static friction check
 		float maxStaticFriction = staticFriction * length(frictionImpulse);
-		if (length(frictionImpulse) < maxStaticFriction)
+		if (abs(frictionImpulseScalar) < maxStaticFriction)
 		{
 			//apply full static friction
 			bodyA.velocity -= frictionImpulse / bodyA.mass;
@@ -335,9 +352,12 @@ namespace ElypsoPhysics
 		else
 		{
 			//apply dynamic friction instead
-			frictionImpulse *= dynamicFriction;
+			frictionImpulse = dynamicFriction * frictionImpulse;
 			bodyA.velocity -= frictionImpulse / bodyA.mass;
 			bodyB.velocity += frictionImpulse / bodyB.mass;
 		}
+
+		if (length(bodyA.velocity) < 0.01f) bodyA.velocity = vec3(0.0f);
+		if (length(bodyB.velocity) < 0.01f) bodyB.velocity = vec3(0.0f);
 	}
 }

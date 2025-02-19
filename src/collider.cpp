@@ -8,15 +8,27 @@
 
 namespace ElypsoPhysics
 {
+	Collider::Collider(
+		ColliderType type, 
+		const GameObjectHandle& h)
+		: type(type), 
+		handle(h) {}
+
 	BoxCollider::BoxCollider(
-		GameObjectHandle h,
+		const GameObjectHandle& h,
 		const vec3& size)
 		: Collider(ColliderType::BOX, h),
-		halfExtents(size * 0.5f) {}
+		halfExtents(size * 0.5f) 
+	{
+		CalculateBoundingRadius();
+	}
 
 	SphereCollider::SphereCollider(
-		GameObjectHandle h,
+		const GameObjectHandle& h,
 		float r)
 		: Collider(ColliderType::SPHERE, h),
-		radius(r) {}
+		radius(r) 
+	{
+		CalculateBoundingRadius();
+	}
 }
