@@ -14,9 +14,7 @@ using glm::normalize;
 using glm::length;
 using std::cerr;
 using std::cout;
-using std::make_unique;
 using std::min;
-using std::move;
 using glm::clamp;
 
 namespace ElypsoPhysics
@@ -90,7 +88,7 @@ namespace ElypsoPhysics
 		GameObjectHandle handle(index, generation);
 
 		//create the rigidbody
-		auto rb = make_unique<RigidBody>(
+		RigidBody* rb = new RigidBody(
 			handle,
 			pos,
 			rot,
@@ -103,14 +101,14 @@ namespace ElypsoPhysics
 		//assign collider based on collider type
 		if (colliderType == ColliderType::BOX)
 		{
-			rb->collider = make_unique<BoxCollider>(handle, colliderSizeOrRadius);
+			rb->collider = new BoxCollider(handle, colliderSizeOrRadius);
 		}
 		else if (colliderType == ColliderType::SPHERE)
 		{
-			rb->collider = make_unique<SphereCollider>(handle, colliderSizeOrRadius.x);
+			rb->collider = new SphereCollider(handle, colliderSizeOrRadius.x);
 		}
 
-		bodies.push_back(move(rb));
+		bodies.push_back(rb);
 		bodyMap[handle] = index;
 
 		if (generations.size() <= index) generations.push_back(0);
@@ -123,7 +121,7 @@ namespace ElypsoPhysics
 		auto it = bodyMap.find(handle);
 		if (it != bodyMap.end())
 		{
-			return bodies[it->second].get();
+			return bodies[it->second];
 		}
 		return nullptr;
 	}
@@ -141,7 +139,7 @@ namespace ElypsoPhysics
 			if (index < bodies.size() - 1)
 			{
 				swap(bodies[index], bodies.back());
-				bodyMap[bodies[index].get()->handle] = index;
+				bodyMap[bodies[index]->handle] = index;
 			}
 
 			bodies.erase(bodies.begin() + index);

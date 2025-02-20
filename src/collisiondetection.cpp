@@ -29,11 +29,11 @@ namespace ElypsoPhysics
 		vec3 extentsA;
 		if (a.collider->type == ColliderType::BOX)
 		{
-			extentsA = static_cast<BoxCollider*>(a.collider.get())->halfExtents;
+			extentsA = static_cast<BoxCollider*>(a.collider)->halfExtents;
 		}
 		else if (a.collider->type == ColliderType::SPHERE)
 		{
-			float radius = static_cast<SphereCollider*>(a.collider.get())->radius;
+			float radius = static_cast<SphereCollider*>(a.collider)->radius;
 			extentsA = vec3(radius);
 		}
 		else extentsA = vec3(0);
@@ -41,11 +41,11 @@ namespace ElypsoPhysics
 		vec3 extentsB;
 		if (b.collider->type == ColliderType::BOX)
 		{
-			extentsB = static_cast<BoxCollider*>(b.collider.get())->halfExtents;
+			extentsB = static_cast<BoxCollider*>(b.collider)->halfExtents;
 		}
 		else if (b.collider->type == ColliderType::SPHERE)
 		{
-			float radius = static_cast<SphereCollider*>(b.collider.get())->radius;
+			float radius = static_cast<SphereCollider*>(b.collider)->radius;
 			extentsB = vec3(radius);
 		}
 		else extentsB = vec3(0);
@@ -70,16 +70,16 @@ namespace ElypsoPhysics
 
 		//calculate future AABB for moving body
 		vec3 movingExtents = (movingBody.collider->type == ColliderType::BOX)
-			? static_cast<BoxCollider*>(movingBody.collider.get())->halfExtents
-			: vec3(static_cast<SphereCollider*>(movingBody.collider.get())->radius);
+			? static_cast<BoxCollider*>(movingBody.collider)->halfExtents
+			: vec3(static_cast<SphereCollider*>(movingBody.collider)->radius);
 
 		vec3 futureMinA = futurePosition - movingExtents;
 		vec3 futureMaxA = futurePosition + movingExtents;
 
 		//current AABB for other body
 		vec3 otherExtents = (otherBody.collider->type == ColliderType::BOX)
-			? static_cast<BoxCollider*>(otherBody.collider.get())->halfExtents
-			: vec3(static_cast<SphereCollider*>(otherBody.collider.get())->radius);
+			? static_cast<BoxCollider*>(otherBody.collider)->halfExtents
+			: vec3(static_cast<SphereCollider*>(otherBody.collider)->radius);
 
 		vec3 minB = otherBody.position - otherExtents;
 		vec3 maxB = otherBody.position + otherExtents;

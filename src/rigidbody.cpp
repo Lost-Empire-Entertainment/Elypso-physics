@@ -45,7 +45,7 @@ namespace ElypsoPhysics
 
 		if (collider->type == ColliderType::BOX)
 		{
-			BoxCollider* box = static_cast<BoxCollider*>(collider.get());
+			BoxCollider* box = static_cast<BoxCollider*>(collider);
 			vec3 halfExtents = box->halfExtents;
 
 			float I_x = (1.0f / 12.0f) * mass * (halfExtents.y * halfExtents.y + halfExtents.z * halfExtents.z);
@@ -56,7 +56,7 @@ namespace ElypsoPhysics
 		}
 		else if (collider->type == ColliderType::SPHERE)
 		{
-			SphereCollider* sphere = static_cast<SphereCollider*>(collider.get());
+			SphereCollider* sphere = static_cast<SphereCollider*>(collider);
 			float inertia = (2.0f / 5.0f) * mass * (sphere->radius * sphere->radius);
 			inertiaTensor = vec3(inertia);
 		}
