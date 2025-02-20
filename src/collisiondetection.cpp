@@ -56,9 +56,40 @@ namespace ElypsoPhysics
 		vec3 minB = b.position - extentsB;
 		vec3 maxB = b.position + extentsB;
 
-		return (minA.x <= maxB.x && maxA.x >= minB.x) 
-			&& (minA.y <= maxB.y && maxA.y >= minB.y) 
-			&& (minA.z <= maxB.z && maxA.z >= minB.z);
+		//add edge tolerance to prevent slipping through edges
+		float edgeTolerance = 0.01f;
+
+		return (minA.x <= maxB.x + edgeTolerance && maxA.x >= minB.x - edgeTolerance) 
+			&& (minA.y <= maxB.y + edgeTolerance && maxA.y >= minB.y - edgeTolerance) 
+			&& (minA.z <= maxB.z + edgeTolerance && maxA.z >= minB.z - edgeTolerance);
+	}
+
+	bool CollisionDetection::CheckAABBCollisionAt(const RigidBody& movingBody, const vec3& futurePosition, const RigidBody& otherBody)
+	{
+		if (!otherBody.collider) return false;
+
+		//calculate future AABB for moving body
+		vec3 movingExtents = (movingBody.collider->type == ColliderType::BOX)
+			? static_cast<BoxCollider*>(movingBody.collider.get())->halfExtents
+			: vec3(static_cast<SphereCollider*>(movingBody.collider.get())->radius);
+
+		vec3 futureMinA = futurePosition - movingExtents;
+		vec3 futureMaxA = futurePosition + movingExtents;
+
+		//current AABB for other body
+		vec3 otherExtents = (otherBody.collider->type == ColliderType::BOX)
+			? static_cast<BoxCollider*>(otherBody.collider.get())->halfExtents
+			: vec3(static_cast<SphereCollider*>(otherBody.collider.get())->radius);
+
+		vec3 minB = otherBody.position - otherExtents;
+		vec3 maxB = otherBody.position + otherExtents;
+
+		float edgeTolerance = 0.01f;
+
+		//check future overlap with edge tolerance
+		return (futureMinA.x <= maxB.x + edgeTolerance && futureMaxA.x >= minB.x - edgeTolerance)
+			&& (futureMinA.y <= maxB.y + edgeTolerance && futureMaxA.y >= minB.y - edgeTolerance)
+			&& (futureMinA.z <= maxB.z + edgeTolerance && futureMaxA.z >= minB.z - edgeTolerance);
 	}
 
 	bool CollisionDetection::CheckBoxBoxCollision(

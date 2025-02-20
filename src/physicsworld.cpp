@@ -17,6 +17,7 @@ using std::cout;
 using std::make_unique;
 using std::min;
 using std::move;
+using glm::clamp;
 
 namespace ElypsoPhysics
 {
@@ -183,12 +184,37 @@ namespace ElypsoPhysics
 					if (length(collisionVector) > 0.0f)
 					{
 						vec3 collisionNormal = normalize(collisionVector);
+						vec3 delta = bodyA.position - bodyB.position;
+						vec3 overlap = abs(delta);
+
+						if (overlap.x < overlap.y 
+							&& overlap.x < overlap.z)
+						{
+							collisionNormal = vec3((delta.x > 0) ? 1.0f : -1.0f, 0.0f, 0.0f);
+						}
+						else if (overlap.y < overlap.z)
+						{
+							collisionNormal = vec3(0.0f, (delta.y > 0) ? 1.0f : -1.0f, 0.0f);
+						}
+						else
+						{
+							collisionNormal = vec3(0.0f, 0.0f, (delta.z > 0) ? 1.0f : -1.0f);
+						}
 
 						bodyA.WakeUp();
 						bodyB.WakeUp();
 
 						//compute penetration depth based on actual overlap
 						float penetrationDepth = maxDistance - length(bodyA.position - bodyB.position);
+
+						vec3 contactPoint =
+							bodyB.position + collisionNormal
+							* (bodyB.collider->boundingRadius
+							- penetrationDepth * 0.5f);
+
+						//apply impulse-based collision response
+						ResolveCollision(bodyA, bodyB, collisionNormal, contactPoint);
+
 						if (penetrationDepth > 0.0f)
 						{
 							float totalMass = bodyA.mass + bodyB.mass;
@@ -196,16 +222,12 @@ namespace ElypsoPhysics
 							float ratioB = bodyA.mass / totalMass;
 
 							const float correctionFactor = 0.8f;
-							vec3 correction = collisionNormal * (penetrationDepth * correctionFactor);
+							const float maxCorrection = 0.5f;
 
+							vec3 correction = collisionNormal * min(penetrationDepth * correctionFactor, maxCorrection);
 							bodyA.position += correction * ratioA;
 							bodyB.position -= correction * ratioB;
 						}
-
-						vec3 contactPoint = (bodyA.position + bodyB.position) * 0.5f;
-
-						//apply impulse-based collision response
-						ResolveCollision(bodyA, bodyB, collisionNormal, contactPoint);
 
 						//apply friction
 						ApplyFriction(bodyA, bodyB, collisionNormal);
@@ -222,6 +244,24 @@ namespace ElypsoPhysics
 			if (!body.isDynamic) continue;
 
 			if (body.useGravity) body.velocity += (gravity * body.gravityFactor) * deltaTime;
+
+			vec3 futurePosition = body.position + body.velocity * deltaTime;
+
+			//check future collision before applying movement
+			for (auto& otherBodyPtr : bodies)
+			{
+				if (bodyPtr == otherBodyPtr) continue;
+
+				RigidBody& otherBody = *otherBodyPtr;
+
+				if (!otherBody.collider) continue;
+
+				if (CollisionDetection::CheckAABBCollisionAt(body, futurePosition, otherBody))
+				{
+					body.velocity = vec3(0.0f);
+					break;
+				}
+			}
 
 			//apply simple euler integration
 			body.position += body.velocity * deltaTime;
@@ -256,7 +296,7 @@ namespace ElypsoPhysics
 			}
 			else
 			{
-				body.sleepTimer = 0.0f; //feset if there's movement
+				body.sleepTimer = 0.0f; //reset if there's movement
 				body.WakeUp();
 			}
 		}
@@ -299,7 +339,13 @@ namespace ElypsoPhysics
 			+ dot(crossRA_N * invInertiaA, crossRA_N)
 			+ dot(crossRB_N * invInertiaB, crossRB_N);
 
+		if (denominator < 0.0001f) return;
+
 		float impulseScalar = -(1.0f + restitution) * velocityAlongNormal / denominator;
+
+		//clamp the impulse to prevent excessive velocity spikes
+		const float maxImpulse = 50.0f;
+		impulseScalar = clamp(impulseScalar, -maxImpulse, maxImpulse);
 
 		//apply linear impulse
 		vec3 impulse = impulseScalar * collisionNormal;
