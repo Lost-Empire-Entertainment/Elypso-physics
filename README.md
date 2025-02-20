@@ -4,7 +4,7 @@ This is a lightweight OpenGL-based C++ 20 physics library for Windows and Linux 
 
 **Elypso physics** is in VERY early development and it is very unstable and will be heavily modified but basic AABB collision is functional.
 
-he documentation for **Elypso physics** will be found at the [website](https://elypsoengine.com) in the near future so please look there for information, this README file will not cover how to install or use this program.
+The documentation for **Elypso physics** will be found at the [website](https://elypsoengine.com) in the near future so please look there for information, this README file will not cover how to install or use this program.
 
 ---
 
