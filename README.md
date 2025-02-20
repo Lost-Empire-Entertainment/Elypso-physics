@@ -4,13 +4,13 @@
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20Mac-brightgreen)
 ![Development Stage](https://img.shields.io/badge/development-Alpha-yellow)
 
-*Elypso Physics* is a lightweight C++ 20 physics library utilizing GLM for core mathematical operations while maintaining compatibility with any graphics API, not just OpenGL.
+**Elypso Physics** is a lightweight **C++ 20** physics library that utilizes **GLM** for core mathematical operations while maintaining compatibility with any graphics API, not just **OpenGL**.
 
-*Elypso Physics* is **OS-agnostic** and should be fully compatible with **Windows**, **Linux**, and **macOS**, though it remains **untested on macOS** and **non-Unix-based Linux distributions**. It uses only standard **C++ 20** libraries and **GLM** for mathematical operations, ensuring cross-platform support.
+Designed to be **platform-agnostic**, the library aims for full compatibility with **Windows**, **Linux**, and **macOS**, though it has only been tested on **Windows** and **Ubuntu** distributions. Relying solely on standard **C++ 20** libraries and **GLM**, it ensures seamless **cross-platform support**.
 
-*Elypso Physics* is in VERY early development, is currently unstable, and will undergo significant changes. Basic AABB collision detection is functional.
+Currently in **VERY early development**, the library is **unstable** and subject to significant changes. However, **basic AABB collision detection** is already functional.
 
-Full documentation for *Elypso Physics* will be available on the [official website](https://www.elypsoengine.com) in the near future. Please refer there for installation and usage instructions, as this README does not cover those details.
+Full documentation will be available on the [official website](https://www.elypsoengine.com) in the near future. Please refer there for **installation** and **usage instructions**, as this **README** does not cover those details.
 
 ---
 
