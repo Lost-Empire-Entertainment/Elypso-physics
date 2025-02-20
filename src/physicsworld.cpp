@@ -98,8 +98,7 @@ namespace ElypsoPhysics
 			restitution,
 			staticFriction,
 			dynamicFriction,
-			gravityFactor,
-			useGravity);
+			gravityFactor);
 
 		//assign collider based on collider type
 		if (colliderType == ColliderType::BOX)
