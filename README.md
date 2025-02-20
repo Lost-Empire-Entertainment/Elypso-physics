@@ -26,6 +26,8 @@ Full documentation will be available on the [official website](https://www.elyps
 
 [Official website](https://elypsoengine.com)
 
+[Track development on the Trello board](https://trello.com/b/a4NAJycX/elypso-physics)
+
 ---
 
 ### Team
