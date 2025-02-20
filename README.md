@@ -1,10 +1,14 @@
 # Elypso physics
 
-This is a lightweight OpenGL-based C++ 20 physics library for Windows and Linux with GLM.
+[![License](https://img.shields.io/badge/license-Zlib-blue)](LICENSE.md)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-brightgreen)
+![Development Stage](https://img.shields.io/badge/development-early-yellow)
 
-**Elypso physics** is in VERY early development and it is very unstable and will be heavily modified but basic AABB collision is functional.
+This is a lightweight C++ 20 physics library for Windows and Linux utilizing GLM for core mathematical operations while maintaining compatibility with any graphics API, not just OpenGL.
 
-The documentation for **Elypso physics** will be found at the [website](https://elypsoengine.com) in the near future so please look there for information, this README file will not cover how to install or use this program.
+*Elypso Physics* is in VERY early development, is currently unstable, and will undergo significant changes. Basic AABB collision detection is functional.
+
+Full documentation for *Elypso Physics* will be available on the [website](https://www.elypsoengine.com) in the near future. Please refer there for installation and usage instructions, as this README does not cover those details.
 
 ---
 
@@ -25,9 +29,3 @@ The documentation for **Elypso physics** will be found at the [website](https://
 ### Team
 
 * [Greenlaser](https://github.com/greeenlaser) - *Lead developer*
-
----
-
-### Licenses
-
-* [ZLib license](LICENSE.md)
