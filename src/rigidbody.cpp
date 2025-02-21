@@ -3,9 +3,16 @@
 //This is free software, and you are welcome to redistribute it under certain conditions.
 //Read LICENSE.md for more information.
 
+#include <iostream>
+#include <string>
+
 //physics
 #include "rigidbody.hpp"
 #include "physicsworld.hpp"
+
+using std::cout;
+using std::string;
+using std::to_string;
 
 namespace ElypsoPhysics
 {
@@ -35,10 +42,6 @@ namespace ElypsoPhysics
 	{
 		ComputeInertiaTensor();
 	}
-	RigidBody::~RigidBody()
-	{
-		PhysicsWorld::GetInstance().RemoveRigidBody(handle, true);
-	}
 
 	void RigidBody::ApplyForce(const vec3& force)
 	{
@@ -52,6 +55,15 @@ namespace ElypsoPhysics
 
 		vec3 acceleration = force / mass;
 		velocity += acceleration;
+
+#ifdef NDEBUG
+#else
+		uint32_t index = handle.index;
+		uint32_t gen = handle.generation;
+		string forceValue = to_string(force.x) + ", " + to_string(force.y) + ", " + to_string(force.z);
+		string message = "[ELYPSO-PHYSICS | SUCCESS] Applied force '" + forceValue + "' to rigidbody (" + to_string(index) + ", " + to_string(gen) + ")!\n";
+		cout << message;
+#endif
 	}
 
 	void RigidBody::ApplyImpulse(const vec3& impulse)
@@ -65,6 +77,15 @@ namespace ElypsoPhysics
 		InternalWakeUp();
 
 		velocity += impulse / mass;
+
+#ifdef NDEBUG
+#else
+		uint32_t index = handle.index;
+		uint32_t gen = handle.generation;
+		string impulseValue = to_string(impulse.x) + ", " + to_string(impulse.y) + ", " + to_string(impulse.z);
+		string message = "[ELYPSO-PHYSICS | SUCCESS] Applied impulse '" + impulseValue + "' to rigidbody (" + to_string(index) + ", " + to_string(gen) + ")!\n";
+		cout << message;
+#endif
 	}
 
 	void RigidBody::ApplyTorque(const vec3& torque)
@@ -78,6 +99,15 @@ namespace ElypsoPhysics
 		InternalWakeUp();
 
 		angularVelocity += torque / inertiaTensor;
+
+#ifdef NDEBUG
+#else
+		uint32_t index = handle.index;
+		uint32_t gen = handle.generation;
+		string torqueValue = to_string(torque.x) + ", " + to_string(torque.y) + ", " + to_string(torque.z);
+		string message = "[ELYPSO-PHYSICS | SUCCESS] Applied torque '" + torqueValue + "' to rigidbody (" + to_string(index) + ", " + to_string(gen) + ")!\n";
+		cout << message;
+#endif
 	}
 
 	void RigidBody::ComputeInertiaTensor()
@@ -117,6 +147,14 @@ namespace ElypsoPhysics
 	{
 		isSleeping = false;
 		sleepTimer = 0.0f;
+
+#ifdef NDEBUG
+#else
+		uint32_t index = handle.index;
+		uint32_t gen = handle.generation;
+		string message = "[ELYPSO-PHYSICS | SUCCESS] Rigidbody (" + to_string(index) + ", " + to_string(gen) + ") woke up!\n";
+		cout << message;
+#endif
 	}
 
 	void RigidBody::Sleep()
@@ -127,5 +165,13 @@ namespace ElypsoPhysics
 		isSleeping = true;
 		velocity = vec3(0.0f);
 		angularVelocity = vec3(0.0f);
+
+#ifdef NDEBUG
+#else
+		uint32_t index = handle.index;
+		uint32_t gen = handle.generation;
+		string message = "[ELYPSO-PHYSICS | SUCCESS] Rigidbody (" + to_string(index) + ", " + to_string(gen) + ") went to sleep!\n";
+		cout << message;
+#endif
 	}
 }

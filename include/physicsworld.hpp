@@ -47,10 +47,6 @@ namespace ElypsoPhysics
 		/// Initializes the physics engine with the specified gravity vector
 		/// </summary>
 		void InitializePhysics(const vec3& gravity = vec3(0.0f, -9.81f, 0.0f));
-		/// <summary>
-		/// Shuts down the physics engine and cleans up all allocated resources
-		/// </summary>
-		void ShutdownPhysics();
 
 		/// <summary>
 		/// Create a RigidBody and return its handle
@@ -75,7 +71,8 @@ namespace ElypsoPhysics
 		/// <summary>
 		/// Remove a RigidBody by handle
 		/// </summary>
-		void RemoveRigidBody(GameObjectHandle handle, bool calledFromDestructor = false);
+
+		void RemoveRigidBody(const GameObjectHandle& handle);
 
 		/// <summary>
 		/// Update global physics simulation
@@ -105,6 +102,19 @@ namespace ElypsoPhysics
 		/// Applies frictional forces to reduce sliding and simulate surface resistance after a collision
 		/// </summary>
 		void ApplyFriction(RigidBody& bodyA, RigidBody& bodyB, const vec3& collisionNormal);
+
+		void SetGravity(const vec3& newGravity) { gravity = newGravity; }
+		const vec3& GetGravity() const { return gravity; }
+		
+		const vector<RigidBody*>& GetBodies() const { return bodies; }
+		const unordered_map<GameObjectHandle, size_t, hash<GameObjectHandle>>& GetBodyMap() const { return bodyMap; }
+		const vector<uint32_t>& GetGenerations() const { return generations; }
+
+	private:
+		PhysicsWorld();
+		~PhysicsWorld();
+		PhysicsWorld(const PhysicsWorld&) = delete;
+		PhysicsWorld& operator=(const PhysicsWorld&) = delete;
 
 		bool isInitialized = false;
 
