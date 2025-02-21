@@ -84,6 +84,12 @@ namespace ElypsoPhysics
 		void SetCollider(ColliderType type, const vec3& size);
 
 		/// <summary>
+		/// Return the collider type of the rigidbody
+		/// </summary>
+		/// <returns></returns>
+		ColliderType GetColliderType();
+
+		/// <summary>
 		/// Wake up the body
 		/// </summary>
 		void WakeUp();

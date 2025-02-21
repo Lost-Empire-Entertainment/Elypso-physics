@@ -137,6 +137,11 @@ namespace ElypsoPhysics
 		}
 	}
 
+	ColliderType RigidBody::GetColliderType()
+	{
+		return collider->type;
+	}
+
 	void RigidBody::WakeUp()
 	{
 		isSleeping = false;
