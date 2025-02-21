@@ -110,7 +110,7 @@ namespace ElypsoPhysics
 #endif
 	}
 
-	void RigidBody::ComputeInertiaTensor()
+	void RigidBody::ComputeInertiaTensor(const vec3& scale)
 	{
 		//locks compute inertia tensor function for thread safety
 		lock_guard<mutex> lock(bodyMutex);
@@ -133,6 +133,38 @@ namespace ElypsoPhysics
 			SphereCollider* sphere = static_cast<SphereCollider*>(collider);
 			float inertia = (2.0f / 5.0f) * mass * (sphere->radius * sphere->radius);
 			inertiaTensor = vec3(inertia);
+		}
+	}
+
+	void RigidBody::SetCollider(ColliderType type, const vec3& size)
+	{
+		if (collider) delete collider;
+
+		if (type == ColliderType::BOX)
+		{
+			collider = new BoxCollider(handle, size);
+
+#ifdef NDEBUG
+#else
+			uint32_t index = handle.index;
+			uint32_t gen = handle.generation;
+			string sizeString = to_string(size.x) + ", " + to_string(size.y) + ", " + to_string(size.z);
+			string message = "[ELYPSO-PHYSICS | SUCCESS] Set size to '" + sizeString + "' and collider to box for rigidbody (" + to_string(index) + ", " + to_string(gen) + ")!\n";
+			cout << message;
+#endif
+		}
+		else if (type == ColliderType::SPHERE)
+		{
+			collider = new SphereCollider(handle, size.x);
+
+#ifdef NDEBUG
+#else
+			uint32_t index = handle.index;
+			uint32_t gen = handle.generation;
+			string radius = to_string(size.x);
+			string message = "[ELYPSO-PHYSICS | SUCCESS] Set radius to '" + radius + "' and collider to sphere for rigidbody (" + to_string(index) + ", " + to_string(gen) + ")!\n";
+			cout << message;
+#endif
 		}
 	}
 

@@ -125,14 +125,7 @@ namespace ElypsoPhysics
 			gravityFactor);
 
 		//assign collider based on collider type
-		if (colliderType == ColliderType::BOX)
-		{
-			rb->collider = new BoxCollider(handle, colliderSizeOrRadius);
-		}
-		else if (colliderType == ColliderType::SPHERE)
-		{
-			rb->collider = new SphereCollider(handle, colliderSizeOrRadius.x);
-		}
+		rb->SetCollider(colliderType, colliderSizeOrRadius);
 
 		bodies.push_back(rb);
 		bodyMap[handle] = index;
