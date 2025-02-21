@@ -203,16 +203,6 @@ namespace ElypsoPhysics
 
 			bodies.pop_back();
 		}
-		else
-		{
-#ifdef NDEBUG
-#else
-			uint32_t idx = handle.index;
-			uint32_t gen = handle.generation;
-			string message = "[ELYPSO-PHYSICS | ERROR] Tried to remove invalid rigidbody (" + to_string(idx) + ", " + to_string(gen) + ")!\n";
-			cout << message;
-#endif
-		}
 	}
 
 	void PhysicsWorld::StepSimulation(float deltaTime)
