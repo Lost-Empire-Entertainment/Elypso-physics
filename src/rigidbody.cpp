@@ -130,14 +130,32 @@ namespace ElypsoPhysics
 		if (type == ColliderType::BOX)
 		{
 			collider = new BoxCollider(handle, size);
+
+#ifdef NDEBUG
+#else
+			uint32_t index = handle.index;
+			uint32_t gen = handle.generation;
+			string sizeString = to_string(size.x) + ", " + to_string(size.y) + ", " + to_string(size.z);
+			string message = "[ELYPSO-PHYSICS | SUCCESS] Set size to '" + sizeString + "' and collider to box for rigidbody (" + to_string(index) + ", " + to_string(gen) + ")!\n";
+			cout << message;
+#endif
 		}
 		else if (type == ColliderType::SPHERE)
 		{
 			collider = new SphereCollider(handle, size.x);
+
+#ifdef NDEBUG
+#else
+			uint32_t index = handle.index;
+			uint32_t gen = handle.generation;
+			string radius = to_string(size.x);
+			string message = "[ELYPSO-PHYSICS | SUCCESS] Set radius to '" + radius + "' and collider to sphere for rigidbody (" + to_string(index) + ", " + to_string(gen) + ")!\n";
+			cout << message;
+#endif
 		}
 	}
 
-	ColliderType RigidBody::GetColliderType()
+	ColliderType RigidBody::GetColliderType() const
 	{
 		return collider->type;
 	}
