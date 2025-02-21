@@ -127,14 +127,6 @@ namespace ElypsoPhysics
 	{
 		isSleeping = false;
 		sleepTimer = 0.0f;
-
-#ifdef NDEBUG
-#else
-		uint32_t index = handle.index;
-		uint32_t gen = handle.generation;
-		string message = "[ELYPSO-PHYSICS | SUCCESS] Rigidbody (" + to_string(index) + ", " + to_string(gen) + ") woke up!\n";
-		cout << message;
-#endif
 	}
 
 	void RigidBody::Sleep()
@@ -142,13 +134,5 @@ namespace ElypsoPhysics
 		isSleeping = true;
 		velocity = vec3(0.0f);
 		angularVelocity = vec3(0.0f);
-
-#ifdef NDEBUG
-#else
-		uint32_t index = handle.index;
-		uint32_t gen = handle.generation;
-		string message = "[ELYPSO-PHYSICS | SUCCESS] Rigidbody (" + to_string(index) + ", " + to_string(gen) + ") went to sleep!\n";
-		cout << message;
-#endif
 	}
 }
