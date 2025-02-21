@@ -18,6 +18,7 @@
 #include <vector>
 #include <unordered_map>
 #include <cstdint>
+#include <shared_mutex>
 
 //external
 #include "glm.hpp"
@@ -32,6 +33,10 @@ namespace ElypsoPhysics
 	using glm::vec3;
 	using glm::quat;
 	using std::hash;
+	using std::shared_mutex;
+	using std::lock_guard;
+	using std::unique_lock;
+	using std::shared_lock;
 
 	class PHYSICS_API PhysicsWorld
 	{
@@ -68,21 +73,31 @@ namespace ElypsoPhysics
 		RigidBody* GetRigidBody(const GameObjectHandle& handle);
 
 		/// <summary>
-		/// Remove a RigidBody
+		/// Remove a RigidBody by handle
 		/// </summary>
-		void RemoveRigidBody(GameObjectHandle handle);
+		void RemoveRigidBody(GameObjectHandle handle, bool calledFromDestructor = false);
 
 		/// <summary>
-		/// Update physics simulation
+		/// Update global physics simulation
 		/// </summary>
 		void StepSimulation(float deltaTime);
+
+		const vec3& GetGravity() const { return gravity; }
+
+		//global shared static physics mutex for thread safety
+		static inline shared_mutex physicsMutex;
+	private:
+		PhysicsWorld();
+		~PhysicsWorld();
+		PhysicsWorld(const PhysicsWorld&) = delete;
+		PhysicsWorld& operator=(const PhysicsWorld&) = delete;
 
 		/// <summary>
 		/// Resolves a collision by applying impulse forces to separate the bodies and simulate realistic response
 		/// </summary>
 		void ResolveCollision(
-			RigidBody& bodyA, 
-			RigidBody& bodyB, 
+			RigidBody& bodyA,
+			RigidBody& bodyB,
 			const vec3& collisionNormal,
 			const vec3& contactPoint);
 
@@ -90,14 +105,6 @@ namespace ElypsoPhysics
 		/// Applies frictional forces to reduce sliding and simulate surface resistance after a collision
 		/// </summary>
 		void ApplyFriction(RigidBody& bodyA, RigidBody& bodyB, const vec3& collisionNormal);
-
-		const vec3& GetGravity() const { return gravity; }
-
-	private:
-		PhysicsWorld();
-		~PhysicsWorld();
-		PhysicsWorld(const PhysicsWorld&) = delete;
-		PhysicsWorld& operator=(const PhysicsWorld&) = delete;
 
 		bool isInitialized = false;
 

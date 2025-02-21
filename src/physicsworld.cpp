@@ -25,18 +25,22 @@ namespace ElypsoPhysics
 		return instance;
 	}
 
-	PhysicsWorld::PhysicsWorld() {}
+	PhysicsWorld::PhysicsWorld() : 
+		gravity(0.0f, -9.81f, 0.0f), 
+		isInitialized(false) {}
 
 	PhysicsWorld::~PhysicsWorld()
 	{
-		if (isInitialized)
-		{
-			cerr << "Error: Elypso Physics was not properly shut down. Call ShutdownPhysics() before destruction.\n";
-		}
+		//locks destructor for thread safety
+		unique_lock<shared_mutex> lock(physicsMutex);
+		ShutdownPhysics();
 	}
 
 	void PhysicsWorld::InitializePhysics(const vec3& newGravity)
 	{
+		//locks initialization process for thread safety
+		unique_lock<shared_mutex> lock(physicsMutex);
+
 		if (isInitialized)
 		{
 			cerr << "Error: Elypso Physics is already initialized!\n";
@@ -56,6 +60,9 @@ namespace ElypsoPhysics
 
 	void PhysicsWorld::ShutdownPhysics()
 	{
+		//locks shutdown process for thread safety
+		unique_lock<shared_mutex> lock(physicsMutex);
+
 		if (!isInitialized)
 		{
 			cerr << "Error: Cannot shut down Elypso Physics because it has not yet been initialized!\n";
@@ -64,7 +71,7 @@ namespace ElypsoPhysics
 
 		while (!bodies.empty())
 		{
-			RemoveRigidBody(bodies.back()->handle);
+			RemoveRigidBody(bodies.back()->handle, false);
 		}
 
 		bodyMap.clear();
@@ -86,6 +93,9 @@ namespace ElypsoPhysics
 		float gravityFactor,
 		bool useGravity)
 	{
+		//locks creation process for thread safety
+		unique_lock<shared_mutex> lock(physicsMutex);
+
 		uint32_t index = static_cast<uint32_t>(bodies.size());
 		uint32_t generation = generations.size() > index ? generations[index] : 0;
 
@@ -122,6 +132,9 @@ namespace ElypsoPhysics
 
 	RigidBody* PhysicsWorld::GetRigidBody(const GameObjectHandle& handle)
 	{
+		//allows concurrent reads for thread safety
+		shared_lock<shared_mutex> lock(physicsMutex);
+
 		auto it = bodyMap.find(handle);
 		if (it != bodyMap.end())
 		{
@@ -130,8 +143,11 @@ namespace ElypsoPhysics
 		return nullptr;
 	}
 
-	void PhysicsWorld::RemoveRigidBody(GameObjectHandle handle)
+	void PhysicsWorld::RemoveRigidBody(GameObjectHandle handle, bool calledFromDestructor)
 	{
+		//locks removal process for thread safety
+		unique_lock<shared_mutex> lock(physicsMutex);
+
 		auto it = bodyMap.find(handle);
 		if (it != bodyMap.end())
 		{
@@ -139,8 +155,14 @@ namespace ElypsoPhysics
 
 			if (bodies[index])
 			{
-				delete bodies[index]->collider; //Delete collider
-				delete bodies[index];           //Delete rigid body
+				//Delete collider
+				delete bodies[index]->collider;
+
+				if (!calledFromDestructor)
+				{
+					//Delete rigid body
+					delete bodies[index];
+				}          
 			}
 
 			generations[handle.index]++;
@@ -158,6 +180,9 @@ namespace ElypsoPhysics
 
 	void PhysicsWorld::StepSimulation(float deltaTime)
 	{
+		//locks simulation process for thread safety
+		unique_lock<shared_mutex> lock(physicsMutex);
+
 		//collision detection and resolution
 		for (size_t i = 0; i < bodies.size(); i++)
 		{
@@ -208,8 +233,8 @@ namespace ElypsoPhysics
 							collisionNormal = vec3(0.0f, 0.0f, (delta.z > 0) ? 1.0f : -1.0f);
 						}
 
-						bodyA.WakeUp();
-						bodyB.WakeUp();
+						bodyA.InternalWakeUp();
+						bodyB.InternalWakeUp();
 
 						//compute penetration depth based on actual overlap
 						float penetrationDepth = maxDistance - length(bodyA.position - bodyB.position);
@@ -304,7 +329,7 @@ namespace ElypsoPhysics
 			else
 			{
 				body.sleepTimer = 0.0f; //reset if there's movement
-				body.WakeUp();
+				body.InternalWakeUp();
 			}
 		}
 	}

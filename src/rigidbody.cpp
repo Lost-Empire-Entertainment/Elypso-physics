@@ -5,15 +5,50 @@
 
 //physics
 #include "rigidbody.hpp"
+#include "physicsworld.hpp"
 
 namespace ElypsoPhysics
 {
+	RigidBody::RigidBody(
+		GameObjectHandle h,
+		const vec3& pos,
+		const quat& rot,
+		float m,
+		float rest,
+		float staticFrict,
+		float dynamicFrict,
+		float gFactor) :
+		handle(h),
+		position(pos),
+		rotation(rot),
+		velocity(0.0f),
+		angularVelocity(0.0f),
+		mass(m),
+		isDynamic(false),
+		collider(nullptr),
+		restitution(rest),
+		staticFriction(staticFrict),
+		dynamicFriction(dynamicFrict),
+		gravityFactor(gFactor),
+		useGravity(false),
+		inertiaTensor(vec3(1.0f))
+	{
+		ComputeInertiaTensor();
+	}
+	RigidBody::~RigidBody()
+	{
+		PhysicsWorld::GetInstance().RemoveRigidBody(handle, true);
+	}
+
 	void RigidBody::ApplyForce(const vec3& force)
 	{
+		//locks apply force function for thread safety
+		lock_guard<mutex> lock(bodyMutex);
+
 		//static objects cant move
 		if (!isDynamic) return;
 
-		WakeUp();
+		InternalWakeUp();
 
 		vec3 acceleration = force / mass;
 		velocity += acceleration;
@@ -21,26 +56,35 @@ namespace ElypsoPhysics
 
 	void RigidBody::ApplyImpulse(const vec3& impulse)
 	{
+		//locks apply impulse function for thread safety
+		lock_guard<mutex> lock(bodyMutex);
+
 		//static objects cant move
 		if (!isDynamic) return;
 
-		WakeUp();
+		InternalWakeUp();
 
 		velocity += impulse / mass;
 	}
 
 	void RigidBody::ApplyTorque(const vec3& torque)
 	{
+		//locks apply torque function for thread safety
+		lock_guard<mutex> lock(bodyMutex);
+
 		//static objects cant move
 		if (!isDynamic) return;
 
-		WakeUp();
+		InternalWakeUp();
 
 		angularVelocity += torque / inertiaTensor;
 	}
 
 	void RigidBody::ComputeInertiaTensor()
 	{
+		//locks compute inertia tensor function for thread safety
+		lock_guard<mutex> lock(bodyMutex);
+
 		if (!collider) return;
 
 		if (collider->type == ColliderType::BOX)
@@ -64,12 +108,22 @@ namespace ElypsoPhysics
 
 	void RigidBody::WakeUp()
 	{
+		//locks wakeup function for thread safety
+		lock_guard<mutex> lock(bodyMutex);
+
+		InternalWakeUp();
+	}
+	void RigidBody::InternalWakeUp()
+	{
 		isSleeping = false;
 		sleepTimer = 0.0f;
 	}
 
 	void RigidBody::Sleep()
 	{
+		//locks sleep function for thread safety
+		lock_guard<mutex> lock(bodyMutex);
+
 		isSleeping = true;
 		velocity = vec3(0.0f);
 		angularVelocity = vec3(0.0f);

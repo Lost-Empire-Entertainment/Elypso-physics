@@ -15,6 +15,8 @@
 	#define PHYSICS_API
 #endif
 
+#include <mutex>
+
 //external
 #include "glm.hpp"
 #include "gtc/quaternion.hpp"
@@ -27,10 +29,14 @@ namespace ElypsoPhysics
 {
 	using glm::vec3;
 	using glm::quat;
+	using std::mutex;
+	using std::lock_guard;
 
 	class PHYSICS_API RigidBody
 	{
 	public:
+		mutable mutex bodyMutex;       //Local mutex for per-object thread safety
+
 		GameObjectHandle handle;       //Reference to the associated game object
 		vec3 position;                 //Current world position
 		quat rotation;                 //Current world rotation
@@ -59,24 +65,8 @@ namespace ElypsoPhysics
 			float rest = 0.0f,
 			float staticFrict = 0.9f,
 			float dynamicFrict = 0.7f,
-			float gFactor = 1.0f) :
-			handle(h),
-			position(pos),
-			rotation(rot),
-			velocity(0.0f),
-			angularVelocity(0.0f),
-			mass(m),
-			isDynamic(false),
-			collider(nullptr),
-			restitution(rest),
-			staticFriction(staticFrict),
-			dynamicFriction(dynamicFrict),
-			gravityFactor(gFactor),
-			useGravity(false),
-			inertiaTensor(vec3(1.0f))
-		{
-			ComputeInertiaTensor();
-		}
+			float gFactor = 1.0f);
+		~RigidBody();
 
 		/// <summary>
 		/// Apply linear force
@@ -99,6 +89,10 @@ namespace ElypsoPhysics
 		/// Wake up the body
 		/// </summary>
 		void WakeUp();
+		/// <summary>
+		/// Real wakeup function, avoids redundant thread locking
+		/// </summary>
+		void InternalWakeUp();
 		/// <summary>
 		/// Put the body to sleep
 		/// </summary>
