@@ -45,7 +45,6 @@ namespace ElypsoPhysics
 			if (rb)
 			{
 				GameObjectHandle handle = rb->handle;
-				cout << "AAAAAAAAAAAA\n";
 				RemoveRigidBody(handle);
 			}
 		}
@@ -97,6 +96,9 @@ namespace ElypsoPhysics
 		float gravityFactor,
 		bool useGravity)
 	{
+		//locks initialization process for thread safety
+		unique_lock<shared_mutex> lock(physicsMutex);
+
 		if (!isInitialized)
 		{
 			cerr << "[ELYPSO-PHYSICS | ERROR] Cannot create a RigidBody if Elypso Physics isnt initialized!\n";
@@ -212,6 +214,9 @@ namespace ElypsoPhysics
 
 	void PhysicsWorld::StepSimulation(float deltaTime)
 	{
+		//locks initialization process for thread safety
+		unique_lock<shared_mutex> lock(physicsMutex);
+
 		if (bodyMap.size() == 0) return;
 
 		//collision detection and resolution
