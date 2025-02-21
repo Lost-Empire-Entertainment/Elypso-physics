@@ -34,6 +34,9 @@ namespace ElypsoPhysics
 	}
 	PhysicsWorld::~PhysicsWorld()
 	{
+		//locks destructor for thread safety
+		unique_lock<shared_mutex> lock(physicsMutex);
+
 		if (!isInitialized)
 		{
 			cerr << "[ELYPSO-PHYSICS | ERROR] Cannot shut down Elypso Physics because it has not yet been initialized!\n";
