@@ -62,7 +62,11 @@ namespace ElypsoPhysics
 			return;
 		}
 
-		bodies.clear();
+		while (!bodies.empty())
+		{
+			RemoveRigidBody(bodies.back()->handle);
+		}
+
 		bodyMap.clear();
 		generations.clear();
 		isInitialized = false;
@@ -133,6 +137,12 @@ namespace ElypsoPhysics
 		{
 			size_t index = it->second;
 
+			if (bodies[index])
+			{
+				delete bodies[index]->collider; //Delete collider
+				delete bodies[index];           //Delete rigid body
+			}
+
 			generations[handle.index]++;
 			bodyMap.erase(it);
 
@@ -142,7 +152,7 @@ namespace ElypsoPhysics
 				bodyMap[bodies[index]->handle] = index;
 			}
 
-			bodies.erase(bodies.begin() + index);
+			bodies.pop_back();
 		}
 	}
 
