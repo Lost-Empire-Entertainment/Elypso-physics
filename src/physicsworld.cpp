@@ -10,7 +10,6 @@
 #include "physicsworld.hpp"
 #include "collisiondetection.hpp"
 
-using std::swap;
 using glm::normalize;
 using glm::length;
 using std::cerr;
@@ -19,6 +18,7 @@ using std::min;
 using glm::clamp;
 using std::string;
 using std::to_string;
+using std::swap;
 
 namespace ElypsoPhysics
 {
@@ -34,7 +34,31 @@ namespace ElypsoPhysics
 	}
 	PhysicsWorld::~PhysicsWorld()
 	{
-		ShutdownPhysics();
+		if (!isInitialized)
+		{
+			cerr << "[ELYPSO-PHYSICS | ERROR] Cannot shut down Elypso Physics because it has not yet been initialized!\n";
+			return;
+		}
+
+		for (auto* rb : bodies)
+		{
+			if (rb)
+			{
+				GameObjectHandle handle = rb->handle;
+				cout << "AAAAAAAAAAAA\n";
+				RemoveRigidBody(handle);
+			}
+		}
+
+		bodies.clear();        // Clear the bodies vector
+		bodyMap.clear();       // Clear the body map
+		generations.clear();   // Clear the generations map
+		isInitialized = false;
+
+#ifdef NDEBUG
+#else
+		cout << "[ELYPSO-PHYSICS | SUCCESS] Shutdown completed!\n";
+#endif
 	}
 
 	void PhysicsWorld::InitializePhysics(const vec3& newGravity)
@@ -58,29 +82,6 @@ namespace ElypsoPhysics
 #endif
 	}
 
-	void PhysicsWorld::ShutdownPhysics()
-	{
-		if (!isInitialized)
-		{
-			cerr << "[ELYPSO-PHYSICS | ERROR] Cannot shut down Elypso Physics because it has not yet been initialized!\n";
-			return;
-		}
-
-		while (!bodies.empty())
-		{
-			RemoveRigidBody(bodies.back()->handle, false);
-		}
-
-		bodyMap.clear();
-		generations.clear();
-		isInitialized = false;
-
-#ifdef NDEBUG
-#else
-		cout << "[ELYPSO-PHYSICS | SUCCESS] Shutdown completed!\n";
-#endif
-	}
-
 	GameObjectHandle PhysicsWorld::CreateRigidBody(
 		const vec3& pos,
 		const quat& rot,
@@ -93,6 +94,12 @@ namespace ElypsoPhysics
 		float gravityFactor,
 		bool useGravity)
 	{
+		if (!isInitialized)
+		{
+			cerr << "[ELYPSO-PHYSICS | ERROR] Cannot create a RigidBody if Elypso Physics isnt initialized!\n";
+			return GameObjectHandle(UINT32_MAX, UINT32_MAX);
+		}
+
 		uint32_t index = static_cast<uint32_t>(bodies.size());
 		uint32_t generation = generations.size() > index ? generations[index] : 0;
 
@@ -143,7 +150,7 @@ namespace ElypsoPhysics
 		return nullptr;
 	}
 
-	void PhysicsWorld::RemoveRigidBody(GameObjectHandle handle, bool calledFromDestructor)
+	void PhysicsWorld::RemoveRigidBody(const GameObjectHandle& handle)
 	{
 		auto it = bodyMap.find(handle);
 		if (it != bodyMap.end())
@@ -152,39 +159,52 @@ namespace ElypsoPhysics
 
 			if (bodies[index])
 			{
-				//Delete collider
-				delete bodies[index]->collider;
-
-				if (!calledFromDestructor)
+				//delete collider first if it exists
+				if (bodies[index]->collider)
 				{
-					//Delete rigid body
-					delete bodies[index];
+					delete bodies[index]->collider;
+					bodies[index]->collider = nullptr;
 				}
+
+				//delete the rigid body
+				delete bodies[index];
+				bodies[index] = nullptr;
 			}
 
 			generations[handle.index]++;
 			bodyMap.erase(it);
-
 			if (index < bodies.size() - 1)
 			{
 				swap(bodies[index], bodies.back());
 				bodyMap[bodies[index]->handle] = index;
 			}
 
-			bodies.pop_back();
-		}
-
 #ifdef NDEBUG
 #else
-		uint32_t index = handle.index;
-		uint32_t gen = handle.generation;
-		string message = "[ELYPSO-PHYSICS | SUCCESS] Removed rigidbody (" + to_string(index) + ", " + to_string(gen) + ")!\n";
-		cout << message;
+			uint32_t idx = handle.index;
+			uint32_t gen = handle.generation;
+			string message = "[ELYPSO-PHYSICS | SUCCESS] Removed rigidbody (" + to_string(idx) + ", " + to_string(gen) + ")!\n";
+			cout << message;
 #endif
+
+			bodies.pop_back();
+		}
+		else
+		{
+#ifdef NDEBUG
+#else
+			uint32_t idx = handle.index;
+			uint32_t gen = handle.generation;
+			string message = "[ELYPSO-PHYSICS | ERROR] Tried to remove invalid rigidbody (" + to_string(idx) + ", " + to_string(gen) + ")!\n";
+			cout << message;
+#endif
+		}
 	}
 
 	void PhysicsWorld::StepSimulation(float deltaTime)
 	{
+		if (bodyMap.size() == 0) return;
+
 		//collision detection and resolution
 		for (size_t i = 0; i < bodies.size(); i++)
 		{

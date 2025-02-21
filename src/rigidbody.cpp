@@ -8,7 +8,6 @@
 
 //physics
 #include "rigidbody.hpp"
-#include "physicsworld.hpp"
 
 using std::cout;
 using std::string;
@@ -41,10 +40,6 @@ namespace ElypsoPhysics
 		inertiaTensor(vec3(1.0f))
 	{
 		ComputeInertiaTensor();
-	}
-	RigidBody::~RigidBody()
-	{
-		PhysicsWorld::GetInstance().RemoveRigidBody(handle, true);
 	}
 
 	void RigidBody::ApplyForce(const vec3& force)
