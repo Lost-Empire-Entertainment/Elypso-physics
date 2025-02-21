@@ -100,7 +100,7 @@ namespace ElypsoPhysics
 #endif
 	}
 
-	void RigidBody::ComputeInertiaTensor()
+	void RigidBody::ComputeInertiaTensor(const vec3& scale)
 	{
 		if (!collider) return;
 
@@ -120,6 +120,20 @@ namespace ElypsoPhysics
 			SphereCollider* sphere = static_cast<SphereCollider*>(collider);
 			float inertia = (2.0f / 5.0f) * mass * (sphere->radius * sphere->radius);
 			inertiaTensor = vec3(inertia);
+		}
+	}
+
+	void RigidBody::SetCollider(ColliderType type, const vec3& size)
+	{
+		if (collider) delete collider;
+
+		if (type == ColliderType::BOX)
+		{
+			collider = new BoxCollider(handle, size);
+		}
+		else if (type == ColliderType::SPHERE)
+		{
+			collider = new SphereCollider(handle, size.x);
 		}
 	}
 
