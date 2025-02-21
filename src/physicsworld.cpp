@@ -45,7 +45,6 @@ namespace ElypsoPhysics
 			if (rb)
 			{
 				GameObjectHandle handle = rb->handle;
-				cout << "AAAAAAAAAAAA\n";
 				RemoveRigidBody(handle);
 			}
 		}
@@ -188,16 +187,6 @@ namespace ElypsoPhysics
 #endif
 
 			bodies.pop_back();
-		}
-		else
-		{
-#ifdef NDEBUG
-#else
-			uint32_t idx = handle.index;
-			uint32_t gen = handle.generation;
-			string message = "[ELYPSO-PHYSICS | ERROR] Tried to remove invalid rigidbody (" + to_string(idx) + ", " + to_string(gen) + ")!\n";
-			cout << message;
-#endif
 		}
 	}
 
