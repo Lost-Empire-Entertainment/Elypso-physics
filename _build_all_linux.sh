@@ -23,11 +23,9 @@ fi
 if rm -rf "$origin_build_debug"; then
     echo "Deleted build debug folder."
 fi
-
 if rm -rf "$origin_release_install"; then
     echo "Deleted install release folder."
 fi
-
 if rm -rf "$origin_debug_install"; then
     echo "Deleted install debug folder."
 fi
@@ -37,28 +35,18 @@ echo "Building Release and Debug Versions"
 printf "====================================================\n"
 
 # Run the release build script
-if [ -x "$origin/build_linux_release.sh" ]; then
-    "$origin/build_linux_release.sh"
+if [ -f "$origin/build_linux_release.sh" ]; then
+    bash "$origin/build_linux_release.sh"
 else
-    echo "Error: build_linux_release.sh not found or not executable."
+    echo "Error: build_linux_release.sh not found."
     exit 1
 fi
 
 # Run the debug build script
-if [ -x "$origin/build_linux_debug.sh" ]; then
-    "$origin/build_linux_debug.sh"
+if [ -f "$origin/build_linux_debug.sh" ]; then
+    bash "$origin/build_linux_debug.sh"
 else
-    echo "Error: build_linux_debug.sh not found or not executable."
-    exit 1
-fi
-
-# Rename the Debug shared library from libElypsoPhysics.so to libElypsoPhysicsD.so
-debug_lib_path="$origin_debug_install/lib/libElypsoPhysics.so"
-if [ -f "$debug_lib_path" ]; then
-    mv "$debug_lib_path" "$origin_debug_install/lib/libElypsoPhysicsD.so"
-    echo "Renamed debug shared library to libElypsoPhysicsD.so"
-else
-    echo "Error: Debug shared library not found at $debug_lib_path"
+    echo "Error: build_linux_debug.sh not found."
     exit 1
 fi
 
@@ -76,12 +64,12 @@ origin_release_lib="$origin_release_install/lib/libElypsoPhysics.so"
 origin_debug_lib="$origin_debug_install/lib/libElypsoPhysicsD.so"
 
 # Engine library target folders
-engine_libs_folder="$engine/files/external_shared_libs"
+engine_libs_folder="$engine/files/external dlls"
 engine_release_lib="$engine_libs_folder/release/libElypsoPhysics.so"
 engine_debug_lib="$engine_libs_folder/debug/libElypsoPhysicsD.so"
 
 # Game library target folders
-game_libs_folder="$engine/../Game/files/external_shared_libs"
+game_libs_folder="$engine/../Game/files/external dlls"
 game_release_lib="$game_libs_folder/release/libElypsoPhysics.so"
 game_debug_lib="$game_libs_folder/debug/libElypsoPhysicsD.so"
 
