@@ -42,14 +42,20 @@ namespace ElypsoPhysics
 	public:
 		ColliderType type;
 		GameObjectHandle handle;
+		vec3 localScale;
+		vec3 worldScale;
 		float boundingRadius = 0.0f;
 
-		explicit Collider(ColliderType type, const GameObjectHandle& h);
+		explicit Collider(
+			const vec3& localScale,
+			const vec3& worldScale,
+			ColliderType type, 
+			const GameObjectHandle& h);
 		
 		virtual ~Collider() = default;
 
 		virtual void CalculateBoundingRadius() = 0;
-		virtual void UpdateScale(const vec3& scale) = 0;
+		virtual void UpdateScale(const vec3& newWorldScale) = 0;
 
 		Collider(const Collider&) = delete;
 		Collider& operator=(const Collider&) = delete;
@@ -58,10 +64,13 @@ namespace ElypsoPhysics
 	class PHYSICS_API BoxCollider : public Collider
 	{
 	public:
-		BoxCollider(const GameObjectHandle& h, const vec3& size);
-		void UpdateScale(const vec3& scale) override
+		BoxCollider(
+			const vec3& localScale,
+			const vec3& worldScale,
+			const GameObjectHandle& h);
+		void UpdateScale(const vec3& newWorldScale) override
 		{
-			halfExtents = scale * 0.5f;
+			halfExtents = newWorldScale * 0.5f;
 			CalculateBoundingRadius();
 		}
 		void CalculateBoundingRadius() override
@@ -75,10 +84,13 @@ namespace ElypsoPhysics
 	class PHYSICS_API SphereCollider : public Collider
 	{
 	public:
-		SphereCollider(const GameObjectHandle& h, float r);
-		void UpdateScale(const vec3& scale) override
+		SphereCollider(
+			const vec3& localScale,
+			const vec3& worldScale,
+			const GameObjectHandle& h);
+		void UpdateScale(const vec3& newWorldScale) override
 		{
-			radius = scale.x * 0.5f;
+			radius = newWorldScale.x * 0.5f;
 			CalculateBoundingRadius();
 		}
 		void CalculateBoundingRadius() override

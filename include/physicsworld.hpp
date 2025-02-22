@@ -47,8 +47,10 @@ namespace ElypsoPhysics
 		/// Create a RigidBody and return its handle
 		/// </summary>
 		GameObjectHandle CreateRigidBody(
-			const vec3& pos, 
-			const quat& rot,
+			const vec3& localPosition,
+			const vec3& worldPosition,
+			const quat& localRotation,
+			const quat& worldRotation,
 			ColliderType colliderType,
 			const vec3& colliderSizeOrRadius,
 			float mass = 1.0f,
