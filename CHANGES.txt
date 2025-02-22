@@ -1,0 +1,14 @@
+0.1:
+
+- only uses glm and c++ 20 standard libraries
+- works on windows and linux
+- simple AABB collision with cubes, has sphere collider as placeholder
+- rigidbody class holds collider and several tweakable variables
+- placeholder friction
+- adjustable offset position, rotation and scale per rigidbody
+- linear and angular velocity
+- can apply force, impulse and torque per rigidbody
+- gameobject handle index-generation system efficiently handles per-rigidbody interactions on physics library side, end user just needs to implement a way to handle how they want to use it on their end
+- global gravity, per-rigidbody gravity toggle, dynamic state toggle and gravity factor float
+- automatic sleep-wake system to efficiently handle system resources
+- automatic resource cleanup if physics library goes out of scope
