@@ -32,10 +32,10 @@ namespace ElypsoPhysics
 	{
 	public:
 		GameObjectHandle handle;       //Reference to the associated game object
-		vec3 localPosition;            //The local position relative to the target gameobject
-		vec3 worldPosition;            //The world position in the scene
-		quat localRotation;            //The local rotation relative to the target gameobject
-		quat worldRotation;            //The world rotation in the scene
+		vec3 offsetPosition;           //The offset position relative to the target gameobject
+		vec3 combinedPosition;         //The combined position of target gameobject position and local offset
+		quat offsetRotation;           //The offset rotation relative to the target gameobject
+		quat combinedRotation;         //The combined rotation of target gameobject rotation and local offset
 		vec3 velocity;                 //Linear velocity
 		vec3 angularVelocity;          //Angular velocity (rotation speed)
 		float mass;                    //Object's mass affecting inertia
@@ -55,10 +55,10 @@ namespace ElypsoPhysics
 
 		RigidBody(
 			GameObjectHandle h,
-			const vec3& localPosition,
-			const vec3& worldPosition,
-			const quat& localRotation,
-			const quat& worldRotation,
+			const vec3& offsetPosition,
+			const vec3& combinedPosition,
+			const quat& offsetRotation,
+			const quat& combinedRotation,
 			float m = 1.0f,
 			float rest = 0.0f,
 			float staticFrict = 0.9f,
@@ -86,8 +86,8 @@ namespace ElypsoPhysics
 		/// Assign a new collider or change the existing collider of the rigidbody
 		/// </summary>
 		void SetCollider(
-			const vec3& localScale,
-			const vec3& worldScale,
+			const vec3& offsetScale,
+			const vec3& combinedScale,
 			ColliderType type);
 
 		/// <summary>
