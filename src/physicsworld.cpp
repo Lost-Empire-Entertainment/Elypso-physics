@@ -88,10 +88,10 @@ namespace ElypsoPhysics
 	}
 
 	GameObjectHandle PhysicsWorld::CreateRigidBody(
-		const vec3& localPosition,
-		const vec3& worldPosition,
-		const quat& localRotation,
-		const quat& worldRotation,
+		const vec3& offsetPosition,
+		const vec3& combinedPosition,
+		const quat& offsetRotation,
+		const quat& combinedRotation,
 		ColliderType colliderType,
 		const vec3& colliderSizeOrRadius,
 		float mass,
@@ -118,10 +118,10 @@ namespace ElypsoPhysics
 		//create the rigidbody
 		RigidBody* rb = new RigidBody(
 			handle,
-			localPosition,
-			worldPosition,
-			localRotation,
-			worldRotation,
+			offsetPosition,
+			combinedPosition,
+			offsetRotation,
+			combinedRotation,
 			mass,
 			restitution,
 			staticFriction,
@@ -237,15 +237,15 @@ namespace ElypsoPhysics
 
 				//skip if objects are too far apart
 				float maxDistance = bodyA.collider->boundingRadius + bodyB.collider->boundingRadius;
-				if (length(bodyA.worldPosition - bodyB.worldPosition) > maxDistance) continue;
+				if (length(bodyA.combinedPosition - bodyB.combinedPosition) > maxDistance) continue;
 
 				if (CollisionDetection::CheckAABBCollision(bodyA, bodyB))
 				{
-					vec3 collisionVector = bodyA.worldPosition - bodyB.worldPosition;
+					vec3 collisionVector = bodyA.combinedPosition - bodyB.combinedPosition;
 					if (length(collisionVector) > 0.0f)
 					{
 						vec3 collisionNormal = normalize(collisionVector);
-						vec3 delta = bodyA.worldPosition - bodyB.worldPosition;
+						vec3 delta = bodyA.combinedPosition - bodyB.combinedPosition;
 						vec3 overlap = abs(delta);
 
 						if (overlap.x < overlap.y 
@@ -266,10 +266,10 @@ namespace ElypsoPhysics
 						bodyB.InternalWakeUp();
 
 						//compute penetration depth based on actual overlap
-						float penetrationDepth = maxDistance - length(bodyA.worldPosition - bodyB.worldPosition);
+						float penetrationDepth = maxDistance - length(bodyA.combinedPosition - bodyB.combinedPosition);
 
 						vec3 contactPoint =
-							bodyB.worldPosition + collisionNormal
+							bodyB.combinedPosition + collisionNormal
 							* (bodyB.collider->boundingRadius
 							- penetrationDepth * 0.5f);
 
@@ -286,8 +286,8 @@ namespace ElypsoPhysics
 							const float maxCorrection = 0.5f;
 
 							vec3 correction = collisionNormal * min(penetrationDepth * correctionFactor, maxCorrection);
-							bodyA.worldPosition += correction * ratioA;
-							bodyB.worldPosition -= correction * ratioB;
+							bodyA.combinedPosition += correction * ratioA;
+							bodyB.combinedPosition -= correction * ratioB;
 						}
 
 						//apply friction
@@ -306,7 +306,7 @@ namespace ElypsoPhysics
 
 			if (body.useGravity) body.velocity += (gravity * body.gravityFactor) * deltaTime;
 
-			vec3 futurePosition = body.worldPosition + body.velocity * deltaTime;
+			vec3 futurePosition = body.combinedPosition + body.velocity * deltaTime;
 
 			//check future collision before applying movement
 			for (auto& otherBodyPtr : bodies)
@@ -325,7 +325,7 @@ namespace ElypsoPhysics
 			}
 
 			//apply simple euler integration
-			body.worldPosition += body.velocity * deltaTime;
+			body.combinedPosition += body.velocity * deltaTime;
 
 			//apply angular velocity
 			quat angularRotation = quat(
@@ -333,12 +333,12 @@ namespace ElypsoPhysics
 				body.angularVelocity.x,
 				body.angularVelocity.y,
 				body.angularVelocity.z)
-				* body.worldRotation
+				* body.combinedRotation
 				* 0.5f
 				* deltaTime;
 
-			body.worldRotation += angularRotation;
-			body.worldRotation = normalize(body.worldRotation);
+			body.combinedRotation += angularRotation;
+			body.combinedRotation = normalize(body.combinedRotation);
 
 			float linearDampingFactor = pow(0.99f, deltaTime * 60.0f);
 			float angularDampingFactor = pow(0.98f, deltaTime * 60.0f);
@@ -382,8 +382,8 @@ namespace ElypsoPhysics
 		float restitution = min(bodyA.restitution, bodyB.restitution);
 
 		//compute contact offsets
-		vec3 rA = contactPoint - bodyA.worldPosition;
-		vec3 rB = contactPoint - bodyB.worldPosition;
+		vec3 rA = contactPoint - bodyA.combinedPosition;
+		vec3 rB = contactPoint - bodyB.combinedPosition;
 
 		//compute inverse mass and inverse inertia tensors
 		float invMassA = (bodyA.mass > 0.0f) ? (1.0f / bodyA.mass) : 0.0f;

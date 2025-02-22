@@ -24,7 +24,7 @@ namespace ElypsoPhysics
 
 		//broad-phase radius check
 		float maxDistance = a.collider->boundingRadius + b.collider->boundingRadius;
-		if (length(a.worldPosition - b.worldPosition) > maxDistance) return false;
+		if (length(a.combinedPosition - b.combinedPosition) > maxDistance) return false;
 
 		vec3 extentsA;
 		if (a.collider->type == ColliderType::BOX)
@@ -51,10 +51,10 @@ namespace ElypsoPhysics
 		else extentsB = vec3(0);
 
 		//compute AABB min/max for both objects
-		vec3 minA = a.worldPosition - extentsA;
-		vec3 maxA = a.worldPosition + extentsA;
-		vec3 minB = b.worldPosition - extentsB;
-		vec3 maxB = b.worldPosition + extentsB;
+		vec3 minA = a.combinedPosition - extentsA;
+		vec3 maxA = a.combinedPosition + extentsA;
+		vec3 minB = b.combinedPosition - extentsB;
+		vec3 maxB = b.combinedPosition + extentsB;
 
 		//add edge tolerance to prevent slipping through edges
 		float edgeTolerance = 0.01f;
@@ -81,8 +81,8 @@ namespace ElypsoPhysics
 			? static_cast<BoxCollider*>(otherBody.collider)->halfExtents
 			: vec3(static_cast<SphereCollider*>(otherBody.collider)->radius);
 
-		vec3 minB = otherBody.worldPosition - otherExtents;
-		vec3 maxB = otherBody.worldPosition + otherExtents;
+		vec3 minB = otherBody.combinedPosition - otherExtents;
+		vec3 maxB = otherBody.combinedPosition + otherExtents;
 
 		float edgeTolerance = 0.01f;
 

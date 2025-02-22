@@ -18,20 +18,20 @@ namespace ElypsoPhysics
 {
 	RigidBody::RigidBody(
 		GameObjectHandle h,
-		const vec3& localPosition,
-		const vec3& worldPosition,
-		const quat& localRotation,
-		const quat& worldRotation,
+		const vec3& offsetPosition,
+		const vec3& combinedPosition,
+		const quat& offsetRotation,
+		const quat& combinedRotation,
 		float m,
 		float rest,
 		float staticFrict,
 		float dynamicFrict,
 		float gFactor) :
 		handle(h),
-		localPosition(localPosition),
-		worldPosition(worldPosition),
-		localRotation(localRotation),
-		worldRotation(worldRotation),
+		offsetPosition(offsetPosition),
+		combinedPosition(combinedPosition),
+		offsetRotation(offsetRotation),
+		combinedRotation(combinedRotation),
 		velocity(0.0f),
 		angularVelocity(0.0f),
 		mass(m),
@@ -141,8 +141,8 @@ namespace ElypsoPhysics
 	}
 
 	void RigidBody::SetCollider(
-		const vec3& localScale,
-		const vec3& worldScale,
+		const vec3& offsetScale,
+		const vec3& combinedScale,
 		ColliderType type)
 	{
 		if (collider) delete collider;
@@ -150,15 +150,15 @@ namespace ElypsoPhysics
 		if (type == ColliderType::BOX)
 		{
 			collider = new BoxCollider(
-				localPosition,
-				worldPosition,
+				offsetPosition,
+				combinedPosition,
 				handle);
 
 #ifdef NDEBUG
 #else
 			uint32_t index = handle.index;
 			uint32_t gen = handle.generation;
-			string sizeString = to_string(worldScale.x) + ", " + to_string(worldScale.y) + ", " + to_string(worldScale.z);
+			string sizeString = to_string(combinedScale.x) + ", " + to_string(combinedScale.y) + ", " + to_string(combinedScale.z);
 			string message = "[ELYPSO-PHYSICS | SUCCESS] Set size to '" + sizeString + "' and collider to box for rigidbody (" + to_string(index) + ", " + to_string(gen) + ")!\n";
 			cout << message;
 #endif
@@ -166,15 +166,15 @@ namespace ElypsoPhysics
 		else if (type == ColliderType::SPHERE)
 		{
 			collider = new SphereCollider(
-				localPosition,
-				worldPosition,
+				offsetPosition,
+				combinedPosition,
 				handle);
 
 #ifdef NDEBUG
 #else
 			uint32_t index = handle.index;
 			uint32_t gen = handle.generation;
-			string radius = to_string(worldScale.x);
+			string radius = to_string(combinedScale.x);
 			string message = "[ELYPSO-PHYSICS | SUCCESS] Set radius to '" + radius + "' and collider to sphere for rigidbody (" + to_string(index) + ", " + to_string(gen) + ")!\n";
 			cout << message;
 #endif
