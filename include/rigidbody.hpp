@@ -38,8 +38,10 @@ namespace ElypsoPhysics
 		mutable mutex bodyMutex;       //Local mutex for per-object thread safety
 
 		GameObjectHandle handle;       //Reference to the associated game object
-		vec3 position;                 //Current world position
-		quat rotation;                 //Current world rotation
+		vec3 localPosition;            //The local position relative to the target gameobject
+		vec3 worldPosition;            //The world position in the scene
+		quat localRotation;            //The local rotation relative to the target gameobject
+		quat worldRotation;            //The world rotation in the scene
 		vec3 velocity;                 //Linear velocity
 		vec3 angularVelocity;          //Angular velocity (rotation speed)
 		float mass;                    //Object's mass affecting inertia
@@ -59,8 +61,10 @@ namespace ElypsoPhysics
 
 		RigidBody(
 			GameObjectHandle h,
-			const vec3& pos,
-			const quat& rot,
+			const vec3& localPosition,
+			const vec3& worldPosition,
+			const quat& localRotation,
+			const quat& worldRotation,
 			float m = 1.0f,
 			float rest = 0.0f,
 			float staticFrict = 0.9f,
@@ -87,7 +91,10 @@ namespace ElypsoPhysics
 		/// <summary>
 		/// Assign a new collider or change the existing collider of the rigidbody
 		/// </summary>
-		void SetCollider(ColliderType type, const vec3& size);
+		void SetCollider(
+			const vec3& localScale,
+			const vec3& worldScale,
+			ColliderType type);
 
 		/// <summary>
 		/// Wake up the body

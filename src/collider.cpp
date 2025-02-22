@@ -9,25 +9,39 @@
 namespace ElypsoPhysics
 {
 	Collider::Collider(
+		const vec3& localScale,
+		const vec3& worldScale,
 		ColliderType type, 
-		const GameObjectHandle& h)
-		: type(type), 
+		const GameObjectHandle& h) : 
+		localScale(localScale),
+		worldScale(worldScale),
+		type(type), 
 		handle(h) {}
 
 	BoxCollider::BoxCollider(
-		const GameObjectHandle& h,
-		const vec3& size)
-		: Collider(ColliderType::BOX, h),
-		halfExtents(size * 0.5f) 
+		const vec3& localScale,
+		const vec3& worldScale,
+		const GameObjectHandle& h) : 
+		Collider(
+			localScale,
+			worldScale,
+			ColliderType::BOX, 
+			h),
+		halfExtents(worldScale * 0.5f)
 	{
 		CalculateBoundingRadius();
 	}
 
 	SphereCollider::SphereCollider(
-		const GameObjectHandle& h,
-		float r)
-		: Collider(ColliderType::SPHERE, h),
-		radius(r) 
+		const vec3& localScale,
+		const vec3& worldScale,
+		const GameObjectHandle& h) : 
+		Collider(
+			localScale,
+			worldScale,
+			ColliderType::SPHERE, 
+			h),
+		radius(worldScale.x)
 	{
 		CalculateBoundingRadius();
 	}

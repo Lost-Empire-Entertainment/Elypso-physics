@@ -18,16 +18,20 @@ namespace ElypsoPhysics
 {
 	RigidBody::RigidBody(
 		GameObjectHandle h,
-		const vec3& pos,
-		const quat& rot,
+		const vec3& localPosition,
+		const vec3& worldPosition,
+		const quat& localRotation,
+		const quat& worldRotation,
 		float m,
 		float rest,
 		float staticFrict,
 		float dynamicFrict,
 		float gFactor) :
 		handle(h),
-		position(pos),
-		rotation(rot),
+		localPosition(localPosition),
+		worldPosition(worldPosition),
+		localRotation(localRotation),
+		worldRotation(worldRotation),
 		velocity(0.0f),
 		angularVelocity(0.0f),
 		mass(m),
@@ -136,32 +140,41 @@ namespace ElypsoPhysics
 		}
 	}
 
-	void RigidBody::SetCollider(ColliderType type, const vec3& size)
+	void RigidBody::SetCollider(
+		const vec3& localScale,
+		const vec3& worldScale,
+		ColliderType type)
 	{
 		if (collider) delete collider;
 
 		if (type == ColliderType::BOX)
 		{
-			collider = new BoxCollider(handle, size);
+			collider = new BoxCollider(
+				localPosition,
+				worldPosition,
+				handle);
 
 #ifdef NDEBUG
 #else
 			uint32_t index = handle.index;
 			uint32_t gen = handle.generation;
-			string sizeString = to_string(size.x) + ", " + to_string(size.y) + ", " + to_string(size.z);
+			string sizeString = to_string(worldScale.x) + ", " + to_string(worldScale.y) + ", " + to_string(worldScale.z);
 			string message = "[ELYPSO-PHYSICS | SUCCESS] Set size to '" + sizeString + "' and collider to box for rigidbody (" + to_string(index) + ", " + to_string(gen) + ")!\n";
 			cout << message;
 #endif
 		}
 		else if (type == ColliderType::SPHERE)
 		{
-			collider = new SphereCollider(handle, size.x);
+			collider = new SphereCollider(
+				localPosition,
+				worldPosition,
+				handle);
 
 #ifdef NDEBUG
 #else
 			uint32_t index = handle.index;
 			uint32_t gen = handle.generation;
-			string radius = to_string(size.x);
+			string radius = to_string(worldScale.x);
 			string message = "[ELYPSO-PHYSICS | SUCCESS] Set radius to '" + radius + "' and collider to sphere for rigidbody (" + to_string(index) + ", " + to_string(gen) + ")!\n";
 			cout << message;
 #endif
