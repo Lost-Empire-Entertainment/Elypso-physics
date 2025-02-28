@@ -6,6 +6,9 @@
 #include <iostream>
 #include <string>
 
+//external
+#include "gtc/quaternion.hpp"
+
 //physics
 #include "physicsworld.hpp"
 #include "collisiondetection.hpp"
@@ -15,10 +18,14 @@ using glm::length;
 using std::cerr;
 using std::cout;
 using std::min;
+using std::max;
 using glm::clamp;
 using std::string;
 using std::to_string;
 using std::swap;
+using glm::acos;
+using glm::quat;
+using glm::cross;
 
 namespace ElypsoPhysics
 {
@@ -49,9 +56,9 @@ namespace ElypsoPhysics
 			}
 		}
 
-		bodies.clear();        // Clear the bodies vector
-		bodyMap.clear();       // Clear the body map
-		generations.clear();   // Clear the generations map
+		bodies.clear();        //clear the bodies vector
+		bodyMap.clear();       //clear the body map
+		generations.clear();   //clear the generations map
 		isInitialized = false;
 
 #ifdef NDEBUG
@@ -194,7 +201,6 @@ namespace ElypsoPhysics
 	{
 		if (bodyMap.size() == 0) return;
 
-		//collision detection and resolution
 		for (size_t i = 0; i < bodies.size(); i++)
 		{
 			RigidBody& bodyA = *bodies[i];
@@ -203,90 +209,68 @@ namespace ElypsoPhysics
 			{
 				RigidBody& bodyB = *bodies[j];
 
-				//skip if both bodies are sleeping (no need to check for collision)
 				if (bodyA.isSleeping
 					&& bodyB.isSleeping)
 				{
 					continue;
 				}
 
-				//skip if one or both bodies are missing collider
 				if (!bodyA.collider
 					|| !bodyB.collider)
 				{
 					continue;
 				}
 
-				//skip if objects are too far apart
 				float maxDistance = bodyA.collider->boundingRadius + bodyB.collider->boundingRadius;
 				if (length(bodyA.combinedPosition - bodyB.combinedPosition) > maxDistance) continue;
 
-				if (CollisionDetection::CheckAABBCollision(bodyA, bodyB))
+				bool useOBB = false;
+
+				//check if either object has rotation (not identity quaternion)
+				if (bodyA.collider->type == ColliderType::BOX
+					&& bodyB.collider->type == ColliderType::BOX)
 				{
-					vec3 collisionVector = bodyA.combinedPosition - bodyB.combinedPosition;
-					if (length(collisionVector) > 0.0f)
+					if (acos(clamp(dot(bodyA.combinedRotation, quat(1, 0, 0, 0)), -1.0f, 1.0f)) > 0.01f
+						|| acos(clamp(dot(bodyB.combinedRotation, quat(1, 0, 0, 0)), -1.0f, 1.0f)) > 0.01f)
 					{
-						vec3 collisionNormal = normalize(collisionVector);
-						vec3 delta = bodyA.combinedPosition - bodyB.combinedPosition;
-						vec3 overlap = abs(delta);
+						useOBB = true;
+					}
+				}
 
-						if (overlap.x < overlap.y 
-							&& overlap.x < overlap.z)
+				
+				if (useOBB)
+				{
+					ContactManifold manifold = CollisionDetection::GenerateOBBContactManifold(bodyA, bodyB);
+					if (manifold.colliding
+						&& !manifold.contacts.empty())
+					{
+						for (const auto& contact : manifold.contacts)
 						{
-							collisionNormal = vec3((delta.x > 0) ? 1.0f : -1.0f, 0.0f, 0.0f);
+							ResolveCollision(bodyA, bodyB, contact.normal, contact.point, contact.penetration);
+
+							ApplyFriction(bodyA, bodyB, contact.normal, contact.point);
 						}
-						else if (overlap.y < overlap.z)
-						{
-							collisionNormal = vec3(0.0f, (delta.y > 0) ? 1.0f : -1.0f, 0.0f);
-						}
-						else
-						{
-							collisionNormal = vec3(0.0f, 0.0f, (delta.z > 0) ? 1.0f : -1.0f);
-						}
-
-						bodyA.WakeUp();
-						bodyB.WakeUp();
-
-						//compute penetration depth based on actual overlap
-						float penetrationDepth = maxDistance - length(bodyA.combinedPosition - bodyB.combinedPosition);
-
-						vec3 contactPoint =
-							bodyB.combinedPosition + collisionNormal
-							* (bodyB.collider->boundingRadius
-							- penetrationDepth * 0.5f);
-
-						//apply impulse-based collision response
-						ResolveCollision(bodyA, bodyB, collisionNormal, contactPoint);
-
-						if (penetrationDepth > 0.0f)
-						{
-							float totalMass = bodyA.mass + bodyB.mass;
-							float ratioA = bodyB.mass / totalMass;
-							float ratioB = bodyA.mass / totalMass;
-
-							const float correctionFactor = 0.8f;
-							const float maxCorrection = 0.5f;
-
-							vec3 correction = collisionNormal * min(penetrationDepth * correctionFactor, maxCorrection);
-							bodyA.combinedPosition += correction * ratioA;
-							bodyB.combinedPosition -= correction * ratioB;
-						}
-
-						//apply friction
-						ApplyFriction(bodyA, bodyB, collisionNormal);
 					}
 				}
 			}
 		}
 
-		//apply physics integration for all bodies
+		ApplyPhysicsIntegration(deltaTime);
+	}
+
+	void PhysicsWorld::ApplyPhysicsIntegration(float deltaTime)
+	{
 		for (auto& bodyPtr : bodies)
 		{
 			RigidBody& body = *bodyPtr;
 
 			if (!body.isDynamic) continue;
 
-			if (body.useGravity) body.velocity += (gravity * body.gravityFactor) * deltaTime;
+			if (body.useGravity)
+			{
+				vec3 gravityImpulse = (gravity * body.gravityFactor) * deltaTime;
+				body.ApplyImpulse(gravityImpulse * body.mass);
+			}
 
 			vec3 futurePosition = body.combinedPosition + body.velocity * deltaTime;
 
@@ -299,31 +283,33 @@ namespace ElypsoPhysics
 
 				if (!otherBody.collider) continue;
 
-				if (CollisionDetection::CheckAABBCollisionAt(body, futurePosition, otherBody))
+				if (CollisionDetection::CheckOBBCollisionAt(body, futurePosition, otherBody))
 				{
 					body.velocity = vec3(0.0f);
 					break;
 				}
 			}
 
-			//apply simple euler integration
+			//apply simple Euler integration
 			body.combinedPosition += body.velocity * deltaTime;
 
 			//apply angular velocity
-			quat angularRotation = quat(
-				0,
-				body.angularVelocity.x,
-				body.angularVelocity.y,
-				body.angularVelocity.z)
-				* body.combinedRotation
-				* 0.5f
-				* deltaTime;
+			if (length(body.angularVelocity) > 0.001f)
+			{
+				quat angularRotation = quat(
+					0,
+					body.angularVelocity.x,
+					body.angularVelocity.y,
+					body.angularVelocity.z)
+					* 0.5f
+					* deltaTime;
 
-			body.combinedRotation += angularRotation;
-			body.combinedRotation = normalize(body.combinedRotation);
+				body.combinedRotation += angularRotation * body.combinedRotation;
+				body.combinedRotation = normalize(body.combinedRotation);
+			}
 
 			float linearDampingFactor = pow(0.99f, deltaTime * 60.0f);
-			float angularDampingFactor = pow(0.98f, deltaTime * 60.0f);
+			float angularDampingFactor = pow(angularDamping, deltaTime * 60.0f);
 
 			body.velocity *= linearDampingFactor;
 			body.angularVelocity *= angularDampingFactor;
@@ -339,7 +325,7 @@ namespace ElypsoPhysics
 			}
 			else
 			{
-				body.sleepTimer = 0.0f; //reset if there's movement
+				body.sleepTimer = 0.0f;
 				body.WakeUp();
 			}
 		}
@@ -349,7 +335,8 @@ namespace ElypsoPhysics
 		RigidBody& bodyA, 
 		RigidBody& bodyB, 
 		const vec3& collisionNormal,
-		const vec3& contactPoint)
+		const vec3& contactPoint,
+		float penetration)
 	{
 		//compute relative velocity
 		vec3 relativeVelocity = bodyB.velocity - bodyA.velocity;
@@ -361,7 +348,7 @@ namespace ElypsoPhysics
 		if (velocityAlongNormal > 0.0f) return;
 
 		//combute combied restitution (take the minimum)
-		float restitution = min(bodyA.restitution, bodyB.restitution);
+		float restitution = clamp(min(bodyA.restitution, bodyB.restitution), 0.0f, 0.5f);
 
 		//compute contact offsets
 		vec3 rA = contactPoint - bodyA.combinedPosition;
@@ -390,39 +377,67 @@ namespace ElypsoPhysics
 		const float maxImpulse = 50.0f;
 		impulseScalar = clamp(impulseScalar, -maxImpulse, maxImpulse);
 
-		//apply linear impulse
 		vec3 impulse = impulseScalar * collisionNormal;
-		bodyA.velocity -= impulse * invMassA;
-		bodyB.velocity += impulse * invMassB;
 
-		//apply angular impulse (torque)
-		vec3 torqueImpulseA = cross(rA, impulse) * invInertiaA;
-		vec3 torqueImpulseB = cross(rB, impulse) * invInertiaB;
+		bodyA.ApplyImpulse(-impulse);
+		bodyB.ApplyImpulse(impulse);
 
-		bodyA.angularVelocity -= torqueImpulseA;
-		bodyB.angularVelocity += torqueImpulseB;
+		vec3 torqueImpulseA = cross(rA, impulse);
+		vec3 torqueImpulseB = cross(rB, impulse);
+
+		bodyA.ApplyTorque(-torqueImpulseA);
+		bodyB.ApplyTorque(torqueImpulseB);
 
 		//clamp small residual angular velocities
-		if (length(bodyA.angularVelocity) < 0.01f) bodyA.angularVelocity = vec3(0.0f);
-		if (length(bodyB.angularVelocity) < 0.01f) bodyB.angularVelocity = vec3(0.0f);
+		if (length(bodyA.angularVelocity) < 0.01f)
+		{
+			bodyA.ApplyTorque(-bodyA.angularVelocity * bodyA.inertiaTensor);
+		}
+
+		if (length(bodyB.angularVelocity) < 0.01f)
+		{
+			bodyB.ApplyTorque(-bodyB.angularVelocity * bodyB.inertiaTensor);
+		}
+
+		float corrected = max(0.0f, penetration - minPenetrationThreshold);
+		if (corrected > 0.0f)
+		{
+			float totalMass = bodyA.mass + bodyB.mass;
+			if (totalMass > 0.00001f)
+			{
+				float ratioA = (bodyB.mass / totalMass);
+				float ratioB = (bodyA.mass / totalMass);
+
+				vec3 correctionVec = collisionNormal * (corrected * correctionFactor);
+
+				bodyA.combinedPosition -= correctionVec * ratioA;
+				bodyB.combinedPosition += correctionVec * ratioB;
+			}
+		}
 	}
 
-	void PhysicsWorld::ApplyFriction(RigidBody& bodyA, RigidBody& bodyB, const vec3& collisionNormal)
+	void PhysicsWorld::ApplyFriction(
+		RigidBody& bodyA, 
+		RigidBody& bodyB, 
+		const vec3& collisionNormal,
+		const vec3& contactPoint) const
 	{
-		//compute relative velocity
-		vec3 relativeVelocity = bodyB.velocity - bodyA.velocity;
+		//compute relative velocity at the contact point
+		vec3 rA = contactPoint - bodyA.combinedPosition;
+		vec3 rB = contactPoint - bodyB.combinedPosition;
 
-		//compute tangetial velocity (velocity perpendicular to the normal)
+		vec3 vA = bodyA.velocity + cross(bodyA.angularVelocity, rA);
+		vec3 vB = bodyB.velocity + cross(bodyB.angularVelocity, rB);
+		vec3 relativeVelocity = vB - vA;
+
+		//tangential direction
 		vec3 tangent = relativeVelocity - dot(relativeVelocity, collisionNormal) * collisionNormal;
-
-		//no significant tangential velocity
-		if (length(tangent) < 0.001f) return;
-
+		if (length(tangent) < 1e-6f) return;
 		tangent = normalize(tangent);
 
 		//compute static and dynamic friction coefficients (use average)
-		float staticFriction = (bodyA.staticFriction + bodyB.staticFriction) * 0.5f;
-		float dynamicFriction = (bodyA.dynamicFriction + bodyB.dynamicFriction) * 0.5f;
+		float staticFriction = (bodyA.staticFriction + bodyB.staticFriction) * frictionMultiplier;
+		float dynamicFriction = (bodyA.dynamicFriction + bodyB.dynamicFriction) * frictionMultiplier;
 
 		//compute friction impulse magnitude
 		float frictionImpulseScalar = -dot(relativeVelocity, tangent);
@@ -432,21 +447,28 @@ namespace ElypsoPhysics
 
 		//static friction check
 		float maxStaticFriction = staticFriction * length(frictionImpulse);
-		if (abs(frictionImpulseScalar) < maxStaticFriction)
+		if (abs(frictionImpulseScalar) > maxStaticFriction)
 		{
-			//apply full static friction
-			bodyA.velocity -= frictionImpulse / bodyA.mass;
-			bodyB.velocity += frictionImpulse / bodyB.mass;
-		}
-		else
-		{
-			//apply dynamic friction instead
 			frictionImpulse = dynamicFriction * frictionImpulse;
-			bodyA.velocity -= frictionImpulse / bodyA.mass;
-			bodyB.velocity += frictionImpulse / bodyB.mass;
 		}
 
-		if (length(bodyA.velocity) < 0.01f) bodyA.velocity = vec3(0.0f);
-		if (length(bodyB.velocity) < 0.01f) bodyB.velocity = vec3(0.0f);
+		bodyA.ApplyImpulse(-frictionImpulse);
+		bodyB.ApplyImpulse(frictionImpulse);
+
+		vec3 torqueA = cross(rA, -frictionImpulse);
+		vec3 torqueB = cross(rB, frictionImpulse);
+
+		bodyA.ApplyTorque(torqueA);
+		bodyB.ApplyTorque(torqueB);
+
+		if (length(bodyA.velocity) < 0.01f)
+		{
+			bodyA.angularVelocity *= lowAngularVelocityFactor;
+		}
+
+		if (length(bodyB.velocity) < 0.01f)
+		{
+			bodyB.angularVelocity *= lowAngularVelocityFactor;
+		}
 	}
 }

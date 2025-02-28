@@ -56,6 +56,7 @@ namespace ElypsoPhysics
 		vec3 acceleration = force / mass;
 		velocity += acceleration;
 
+/*
 #ifdef NDEBUG
 #else
 		uint32_t index = handle.index;
@@ -64,6 +65,7 @@ namespace ElypsoPhysics
 		string message = "[ELYPSO-PHYSICS | SUCCESS] Applied force '" + forceValue + "' to rigidbody (" + to_string(index) + ", " + to_string(gen) + ")!\n";
 		cout << message;
 #endif
+*/
 	}
 
 	void RigidBody::ApplyImpulse(const vec3& impulse)
@@ -75,6 +77,7 @@ namespace ElypsoPhysics
 
 		velocity += impulse / mass;
 
+/*
 #ifdef NDEBUG
 #else
 		uint32_t index = handle.index;
@@ -83,6 +86,7 @@ namespace ElypsoPhysics
 		string message = "[ELYPSO-PHYSICS | SUCCESS] Applied impulse '" + impulseValue + "' to rigidbody (" + to_string(index) + ", " + to_string(gen) + ")!\n";
 		cout << message;
 #endif
+*/
 	}
 
 	void RigidBody::ApplyTorque(const vec3& torque)
@@ -94,6 +98,7 @@ namespace ElypsoPhysics
 
 		angularVelocity += torque / inertiaTensor;
 
+/*
 #ifdef NDEBUG
 #else
 		uint32_t index = handle.index;
@@ -102,6 +107,7 @@ namespace ElypsoPhysics
 		string message = "[ELYPSO-PHYSICS | SUCCESS] Applied torque '" + torqueValue + "' to rigidbody (" + to_string(index) + ", " + to_string(gen) + ")!\n";
 		cout << message;
 #endif
+*/
 	}
 
 	void RigidBody::ComputeInertiaTensor(const vec3& scale)
